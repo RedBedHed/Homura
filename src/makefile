@@ -8,7 +8,7 @@ else
 	CFLAGS += -O3 -pipe -march=native -Wall -flto -DNDEBUG -mpopcnt -m64 -mbmi2
 endif
 
-O = main.o analyzer.o ChaosMagic.o MoveMake.o Zobrist.o Backtrack.o Rollout.o
+O = main.o analyzer.o ChaosMagic.o MoveMake.o MoveVerify.o Zobrist.o Backtrack.o Rollout.o
 
 cc0: $(O)
 	$(CC) $(CFLAGS) -lpthread -o $@ $(O)
@@ -19,8 +19,11 @@ main.o: main.cpp Rollout.h Fen.h analyzer.h
 ChaosMagic.o: ChaosMagic.cpp ChaosMagic.h
 	$(CC) $(CFLAGS) -c ChaosMagic.cpp
 
-MoveMake.o: MoveMake.cpp MoveMake.h Zobrist.h ChaosMagic.h
+MoveMake.o: MoveMake.cpp MoveMake.h Zobrist.h ChaosMagic.h MoveVerify.h
 	$(CC) $(CFLAGS) -c MoveMake.cpp
+
+MoveVerify.o: MoveVerify.cpp MoveVerify.h Zobrist.h ChaosMagic.h
+	$(CC) $(CFLAGS) -c MoveVerify.cpp
 
 Zobrist.o: Zobrist.cpp Zobrist.h 
 	$(CC) $(CFLAGS) -c Zobrist.cpp

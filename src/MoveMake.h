@@ -6,6 +6,7 @@
 #ifndef HOMURA_MOVEMAKE_H
 #define HOMURA_MOVEMAKE_H
 
+#include "MoveVerify.h"
 #include "ChaosMagic.h"
 #include "Board.h"
 #include "Move.h"
@@ -15,54 +16,54 @@
 
 namespace Homura {
 
-    /**
-     * TODO: MOVE BACK TO ANON NAMESPACE IN CPP !!!
-     *
-     * A function to find attackers on the fly.
-     *
-     * @tparam A    the alliance of the piece
-     *              on the square under attack
-     * @tparam PT   the piece type
-     * @param board the current game board
-     * @param sq    the square under attack
-     */
-    template<Alliance A, PieceType PT> [[nodiscard]]
-    constexpr uint64_t attacksOn(Board* const board, const int sq) {
-        static_assert(A == White || A == Black);
-        static_assert(PT >= Pawn && PT <= NullPT);
+    // /**
+    //  * TODO: MOVE BACK TO ANON NAMESPACE IN CPP !!!
+    //  *
+    //  * A function to find attackers on the fly.
+    //  *
+    //  * @tparam A    the alliance of the piece
+    //  *              on the square under attack
+    //  * @tparam PT   the piece type
+    //  * @param board the current game board
+    //  * @param sq    the square under attack
+    //  */
+    // template<Alliance A, PieceType PT> [[nodiscard]]
+    // constexpr uint64_t attacksOn(Board* const board, const int sq) {
+    //     static_assert(A == White || A == Black);
+    //     static_assert(PT >= Pawn && PT <= NullPT);
 
-        constexpr const Alliance us = A, them = ~us;
+    //     constexpr const Alliance us = A, them = ~us;
 
-        // Initialize constants.
-        const uint64_t theirQueens = board->getPieces<them, Queen>(),
-                       target      = PT == NullPT? 0: board->getPieces<us, PT>(),
-                       allPieces   = board->getAllPieces() & ~target;
+    //     // Initialize constants.
+    //     const uint64_t theirQueens = board->getPieces<them, Queen>(),
+    //                    target      = PT == NullPT? 0: board->getPieces<us, PT>(),
+    //                    allPieces   = board->getAllPieces() & ~target;
 
-        // Calculate and return a bitboard representing all attackers.
-        return (attackBoard<Rook>(allPieces, sq)   &
-               (board->getPieces<them, Rook>()   | theirQueens)) |
-               (attackBoard<Bishop>(allPieces, sq) &
-               (board->getPieces<them, Bishop>() | theirQueens)) |
-               (SquareToKnightAttacks[sq]   & board->getPieces<them, Knight>()) |
-               (SquareToPawnAttacks[us][sq] & board->getPieces<them, Pawn>())   |
-               (SquareToKingAttacks[sq]     & board->getPieces<them, King>());
-    }
+    //     // Calculate and return a bitboard representing all attackers.
+    //     return (attackBoard<Rook>(allPieces, sq)   &
+    //            (board->getPieces<them, Rook>()   | theirQueens)) |
+    //            (attackBoard<Bishop>(allPieces, sq) &
+    //            (board->getPieces<them, Bishop>() | theirQueens)) |
+    //            (SquareToKnightAttacks[sq]   & board->getPieces<them, Knight>()) |
+    //            (SquareToPawnAttacks[us][sq] & board->getPieces<them, Pawn>())   |
+    //            (SquareToKingAttacks[sq]     & board->getPieces<them, King>());
+    // }
 
-    /**
-     * A function to calculate check for our king given a
-     * bitboard representing the pieces that attack its
-     * square.
-     *
-     * @param checkBoard a bitboard of all pieces that attack
-     * our king
-     * @return whether or not our king is in check
-     */
-    constexpr CheckType
-    calculateCheck(uint64_t checkBoard) {
-        return !checkBoard ? None:
-               (checkBoard & (checkBoard - 1)) ?
-               DoubleCheck: Check;
-    }
+    // /**
+    //  * A function to calculate check for our king given a
+    //  * bitboard representing the pieces that attack its
+    //  * square.
+    //  *
+    //  * @param checkBoard a bitboard of all pieces that attack
+    //  * our king
+    //  * @return whether or not our king is in check
+    //  */
+    // constexpr CheckType
+    // calculateCheck(uint64_t checkBoard) {
+    //     return !checkBoard ? None:
+    //            (checkBoard & (checkBoard - 1)) ?
+    //            DoubleCheck: Check;
+    // }
 
     namespace MoveFactory {
 
@@ -227,6 +228,90 @@ namespace Homura {
              */
             explicit MoveList(Board*, control*, int);
             explicit MoveList(Board*);
+
+            /**
+             * A method to expose the pointer to the
+             * base of the MoveList.
+             * 
+             * @return a pointer to the base of the
+             * MoveList
+             */
+            constexpr Move* begin()
+            { return m; }
+
+            /**
+             * A method to expose the pointer to the
+             * end of the MoveList (the index just 
+             * after the last element in the array).
+             * 
+             * @return a pointer to the end of the
+             * MoveList
+             */
+            constexpr Move* end()
+            { return m + size; }
+
+            /**
+             * A method to expose the length of the
+             * MoveList.
+             * 
+             * @return the length (size) of the move
+             * list.
+             */
+            constexpr uint32_t length()
+            { return size; }
+        };
+
+        enum Stage : uint8_t {
+            StagePV,
+            StageAttacks,
+            StageKiller1,
+            StageKiller2,
+            StageQuiets,
+            StageDone
+        };
+
+        class MoveIterator final {
+        private:
+
+            /**
+             * The backing array for the
+             * move list. Moves are small
+             * and the MoveList is intended
+             * to be stack-allocated. A
+             * capacity of 256 gives us some 
+             * breathing room without too much
+             * waste
+             */
+            Move m[256];
+
+
+
+            uint8_t stage;
+            
+            Board* b;
+            control* q;
+            Move pv;
+            int d;
+
+            /**
+             * The size of this MoveList.
+             */
+            uint16_t size;
+            uint16_t idx;
+            bool emp;
+        public:
+
+            /**
+             * A public constructor for a MoveList.
+             */
+            explicit MoveIterator(Board*, control*, int);
+            explicit MoveIterator(Board*);
+
+            Move nextMove();
+
+            constexpr bool empty() {
+                return emp;
+            }
 
             /**
              * A method to expose the pointer to the

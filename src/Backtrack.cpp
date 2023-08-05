@@ -362,7 +362,7 @@ namespace Homura {
          * Set the pv move to be
          * used in sorting.
          */
-        c->pvMove = ttmove;
+        c->pvMove = ttmove;       
         
         /**
          * Find the next node type 
@@ -376,39 +376,15 @@ namespace Homura {
          * PV, MVV-LVA, Killers, 
          * History.
          */
-        MoveList<AB> ml(b, c, d);
+        MoveIterator ml(b, c, d);
 
-        /**
-         * If the move list is
-         * empty, this position
-         * is either a checkmate
-         * or a stalemate.
-         */
-        if(ml.length() <= 0) {
-
-            /**
-             * If checkmate, 
-             * evaluate
-             * and return.
-             */
-            if(inCheck)
-                return 
-                -mateEval(d);
-
-            /**
-             * If stalemate,
-             * return 0.
-             */
-            else return 0;
-        } 
-
-        /**
-         * Initialize iterator
-         * pointers.
-         */
-        Move *  k = ml.begin(),
-        * const base = k,
-        * const e = ml.end();
+        // /**
+        //  * Initialize iterator
+        //  * pointers.
+        //  */
+        // Move *  k = ml.begin(),
+        // * const base = k,
+        // * const e = ml.end();
 
         /**
          * Set high score to int min
@@ -418,14 +394,32 @@ namespace Homura {
         int32_t highScore = INT32_MIN;
         Move hm = NullMove;
 
+        // MoveList<AB> back(b, c, d);
+        // /**
+        //  * Initialize iterator
+        //  * pointers.
+        //  */
+        // Move *  x = back.begin(),
+        // * const base = x,
+        // * const e = back.end();
+
         /**
          * Loop through every 
          * legal move. We have
          * at least one, as
          * we aren't in mate.
          */
-        do {
-
+        uint8_t spot = 0;
+        for(Move k; (k = ml.nextMove()) != NullMove; ++spot) {
+            // if(true) {
+            //     // std::cout << "\nnot equal\n";
+            //     // std::cout << "index = " << int(idx) << '\n';
+            //     // std::cout << "staged move = " << k << '\n';
+            //     // std::cout << "normal move = " << *(x - 1) << '\n';
+            //     for(Move* t = back.begin(); t < e; ++t)
+            //         if(*t == k) goto leave;
+            //     assert(false);
+            // } leave:
             /**
              * A state for move
              * making.
@@ -447,7 +441,7 @@ namespace Homura {
             /**
              * Do the move.
              */
-            b->applyMove(*k, s);
+            b->applyMove(k, s);
 
             /**
              * Does this move
@@ -475,13 +469,13 @@ namespace Homura {
             const bool concern = 
                 isAttack ||
                 inCheck || 
-                k->isPromotion() ||
+                k.isPromotion() ||
                 giveCheck;
 
             /*
              * PV Search
              */
-            if(k <= base) {
+            if(spot == 0) {
 
                 /**
                  * Do a normal search
@@ -511,8 +505,8 @@ namespace Homura {
             if(r <= LMP_RD && 
                 !pvNode &&
                 !concern &&
-                (k - base) > lmpMargins[r]) {
-                b->retractMove(*k); 
+                spot > lmpMargins[r]) {
+                b->retractMove(k); 
                 continue;
             }
 
@@ -520,7 +514,7 @@ namespace Homura {
              * Futility Pruning.
              */
             if(!concern && futile) {
-                b->retractMove(*k);
+                b->retractMove(k);
                 continue;
             }
 
@@ -540,13 +534,13 @@ namespace Homura {
                  * we have seen so far.
                  */
                 R = pvNode? 
-                    1 + (k - base) / 12: 
+                    1 + spot / 12: 
 
                     /**
                      * From Blunder.
                      */
                     std::max(2, r / 4) + 
-                    (k - base) / 12;
+                    spot / 12;
 
                 /**
                  * Try out the 
@@ -621,7 +615,7 @@ namespace Homura {
             /**
              * Undo the move.
              */
-            b->retractMove(*k);  
+            b->retractMove(k);  
 
             /**
              * If we fail to raise
@@ -638,10 +632,10 @@ namespace Homura {
              */
             highScore = score;
             if constexpr (NT == IID)
-                c->iidMoves[d] = *k;
+                c->iidMoves[d] = k;
             if constexpr (NT == ROOT)
-                c->bestMove = *k;
-            hm = *k;
+                c->bestMove = k;
+            hm = k;
 
            /*
             * If we fail to raise
@@ -673,11 +667,11 @@ namespace Homura {
                  */
                 c->updateHistory<A>
                 (
-                    k->origin(),
-                    k->destination(), 
+                    k.origin(),
+                    k.destination(), 
                     r
                 );
-                c->addKiller(d, *k);
+                c->addKiller(d, k);
                 break;
             }
 
@@ -697,8 +691,8 @@ namespace Homura {
             if(!isAttack) {
                 c->raiseHistory<A>
                 (
-                    k->origin(),
-                    k->destination(), 
+                    k.origin(),
+                    k.destination(), 
                     r
                 );
             }
@@ -707,7 +701,31 @@ namespace Homura {
              * Set alpha.
              */
             a = score;
-        } while(++k < e);
+        }
+
+        /**
+         * If the move list is
+         * empty, this position
+         * is either a checkmate
+         * or a stalemate.
+         */
+        if(ml.empty()) {
+
+            /**
+             * If checkmate, 
+             * evaluate
+             * and return.
+             */
+            if(inCheck)
+                return 
+                -mateEval(d);
+
+            /**
+             * If stalemate,
+             * return 0.
+             */
+            else return 0;
+        } 
 
         /**
          * Cache this node's

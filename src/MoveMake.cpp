@@ -801,6 +801,111 @@ namespace Homura {
             }
         }
 
+        MoveIterator::MoveIterator(Board* const b, control* const q, const int d) : 
+            stage(0), b(b), q(q), pv(q->pvMove), d(d), size(0), idx(0), emp(true) { }
+
+        Move MoveIterator::nextMove() {
+            loopback:
+            switch(stage) {
+            case StagePV:
+                // std::cout << "stagePV: " << int(stage) << '\n';
+                stage = StageAttacks;
+                if(pv == NullMove)
+                    goto loopback;
+                if(!MoveVerifier::verify(b, pv, b->getPiece(pv.origin()))) {
+                    pv = NullMove;
+                    goto loopback;
+                }
+                emp = false;
+                return pv;
+            case StageAttacks:
+                // std::cout << "stageAttacks: " << int(stage) << '\n';
+                if(size == 0) {
+                    // Generate attacks.
+                    size = generateMoves<Aggressive>(b, m);
+                            // Sort attacks MVV-LVA.
+                    if(size > 1) _sort_attacks(b, m, m + (size - 1));
+                }
+                if(idx >= size) {
+                    stage = StageKiller1;
+                    idx = size = 0;
+                    goto loopback;
+                }
+                if(m[idx] == pv) idx++;
+                emp = false;
+                return m[idx++];
+            case StageKiller1: {
+                // std::cout << "stagePV: " << int(stage) << '\n';
+                stage = StageKiller2;
+                Move k = q->killers[d][0];
+                if(k == NullMove || !MoveVerifier::verify(b, k, b->getPiece(k.origin()))) {
+                    goto loopback;
+                }
+                State s;
+                b->applyMove(k,s);
+                bool inCheck;
+                if(b->currentPlayer() == Black)
+                    inCheck = attacksOn<White, King>(
+                    b, bitScanFwd
+                    (b->getPieces<White, King>()));
+                else inCheck = attacksOn<Black, King>(
+                    b, bitScanFwd
+                    (b->getPieces<Black, King>()));
+                b->retractMove(k);
+                if(inCheck) goto loopback;
+                emp = false;
+                assert(b->getPiece(k.origin()) != NullPT);
+                return k;
+            }
+            case StageKiller2: {
+                stage = StageQuiets;
+                Move k = q->killers[d][1];
+                if(k == NullMove || !MoveVerifier::verify(b, k, b->getPiece(k.origin()))) {
+                    goto loopback;
+                }
+                State s;
+                b->applyMove(k,s);
+                bool inCheck;
+                if(b->currentPlayer() == Black)
+                    inCheck = attacksOn<White, King>(
+                    b, bitScanFwd
+                    (b->getPieces<White, King>()));
+                else inCheck = attacksOn<Black, King>(
+                    b, bitScanFwd
+                    (b->getPieces<Black, King>()));
+                b->retractMove(k);
+                if(inCheck) goto loopback;
+                assert(b->getPiece(k.origin()) != NullPT);
+                emp = false;
+                return k;
+            }
+            case StageQuiets:
+                // std::cout << "stageQuiets: " << int(stage) << '\n';
+                if(size == 0) {
+                    // Generate quiets.
+                    Move * base = m;
+                    size = generateMoves<Passive>(b, base);
+                    Move * e = m + (size - 1);
+                    base = _sort_killers(base, e, q, d);
+                    if(e > base) _sort_quiets(b, base, e, q);
+                    idx = base - m;
+                }
+                if(idx >= size) {
+                    stage = StageDone;
+                    goto loopback;
+                }
+                if(m[idx] == pv) idx++;
+                emp = false;
+                return m[idx++];
+            case StageDone:
+                // std::cout << "stageDone: " << int(stage) << '\n';
+                return NullMove;
+            default:
+                // std::cout << "stage: " << int(stage) << '\n';
+                assert(false);
+            }
+        }
+
         /**
          * A dumpster fire, yes... But a (hopefully) fast dumpster fire.
          * 
