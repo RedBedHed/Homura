@@ -673,8 +673,11 @@ namespace Homura {
                 for(int j = 0; j < 2; ++j)
                     killers[i][j] = NullMove;
             }
-            for(int i = 0; i < MaxDepth; ++i)
+            for(int i = 0; i < MaxDepth; ++i) {
                 iidMoves[i] = NullMove;
+                doubleExt[i] = 0;
+                excludeMoves[i] = NullMove;
+            }
         }
 
         void control::addKiller(int depth, Move m) {

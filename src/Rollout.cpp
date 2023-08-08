@@ -601,7 +601,7 @@ namespace Homura {
              * We're in a PV node, so
              * reduce conservatively
              */
-            R = 1 + i / 12;
+            R = 1 + (i / 11);
 
             /**
              * REDUCED NULL-WINDOW SEARCH

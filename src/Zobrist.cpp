@@ -27,7 +27,8 @@ namespace Homura::Zobrist {
             const uint64_t slot = (key % tt_size);
             Entry *e1 = transTable + slot;
 
-            if (e1->key == key)        return e1;
+            if (e1->key == key || (slot ^ 1U) >= tt_size)        
+                return e1;
 
             Entry *e2 = transTable + (slot ^ 1U);
 
@@ -96,7 +97,10 @@ namespace Homura::Zobrist {
         if(e->key == index) {
             e->clock = clock; return e;
         }
-        
+
+        if((slot ^ 1U) >= tt_size) 
+            return nullptr;
+
         e = transTable + (slot ^ 1U);
 
         if(e->key == index) {

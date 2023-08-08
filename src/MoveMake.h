@@ -143,6 +143,8 @@ namespace Homura {
             Move pvMove;
             Move bestMove;
             Move iidMoves[MaxDepth];
+            Move excludeMoves[MaxDepth];
+            int8_t doubleExt[MaxDepth];
 
             control();
 
