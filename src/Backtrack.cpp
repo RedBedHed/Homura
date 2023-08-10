@@ -366,6 +366,45 @@ namespace Homura {
             ttmove = c->iidMoves[d];
         } 
 
+        uint8_t E = 0;
+
+        /**
+         * Singular Move Extensions?
+         */
+        if (NT != ROOT && 
+        c->excludeMoves
+        [d] == NullMove &&
+        r >= 4 && tt &&
+        tt->move != NullMove && 
+        tt->depth >= r - 3 && 
+        tt->type == lower &&
+        tt->key == key &&
+        std::abs(tt->value) < MinMate) {
+
+            int32_t singBeta = 
+                tt->value - (35 * r);
+
+            c->excludeMoves[d] = tt->move;
+            int32_t score = alphaBeta
+            <A, NONPV, false, CUT_NODE>
+            (
+                b, d, (r - 1) / 2,
+                singBeta - 1, singBeta, c
+            ); 
+            c->excludeMoves[d] = NullMove;
+
+            if(score < singBeta) {
+                E = 1;
+                // if(!pvNode && score < singBeta - 20 && c->doubleExt[d] < 10)
+                // {
+                //     ++c->doubleExt[d];
+                //     E = 2;
+                // }
+            }
+            else if(singBeta >= o)
+                return singBeta;
+        }
+
         /**
          * Set the pv move to be
          * used in sorting.
@@ -492,47 +531,6 @@ namespace Homura {
              * PV Search
              */
             if(k <= base) {
-
-                uint8_t E = 0;
-
-                if (
-                d < (c->MAX_DEPTH << 1U) &&
-                NT != ROOT && 
-                c->excludeMoves[d] == NullMove &&
-                r >= 4 &&
-                tt &&
-                tt->move == *k &&
-                tt->depth >= r - 3 && 
-                tt->type != lower &&
-                std::abs(tt->value) < MinMate) {
-                    
-                    b->retractMove(*k);
-
-                    int32_t singBeta = 
-                        tt->value - (5 + r);
-
-                    c->excludeMoves[d] = *k;
-                    score = alphaBeta
-                    <A, NONPV, false, CUT_NODE>
-                    (
-                        b, d, (r - 1) / 2,
-                        singBeta - 1, singBeta, c
-                    ); 
-                    c->excludeMoves[d] = NullMove;
-
-                    if(score < singBeta) {
-                        E = 1;
-                        if(!pvNode && score < singBeta - 20 && c->doubleExt[d] < 10)
-                        {
-                            ++c->doubleExt[d];
-                            E = 2;
-                        }
-                    }
-                    else if(singBeta >= o)
-                        return singBeta;
-
-                    b->applyMove(*k, s);
-                }
 
                 /**
                  * Do a normal search
