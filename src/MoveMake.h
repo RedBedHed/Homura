@@ -226,6 +226,7 @@ namespace Homura {
              * A public constructor for a MoveList.
              */
             explicit MoveList(Board*, control*, int);
+            explicit MoveList(Board*, control*, int, int32_t*);
             explicit MoveList(Board*);
 
             /**

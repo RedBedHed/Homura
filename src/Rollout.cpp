@@ -492,9 +492,13 @@ namespace Homura {
                  */
                 c.NULL_PLY = c.MAX_DEPTH >> 2U;
                 
-                std::cout << "info pv ";
-                MemManager::printPV(n);
-                std::cout << '\n';
+                // std::cout << "info pv ";
+                // MemManager::printPV(n);
+                // std::cout << '\n';
+
+                // std::cout << "height " << MemManager::height(n) << '\n';
+
+                // std::cout << "nodes" << MemManager::treePrint(n, 0) << '\n';
                 
                 /**
                  * Collect the root and
@@ -740,7 +744,8 @@ namespace Homura {
          * History for a 
          * significant speedup.
          */
-        MoveList<AB> ml(b, c, d);
+        int32_t policy[256], *p = policy;
+        MoveList<MCTS> ml(b, c, d, policy);
         Move *k = ml.begin(),
              *e = ml.end();
 
@@ -795,9 +800,10 @@ namespace Homura {
                     (!isMatePossible(b) 
                     || repeating(b, d)? 
                     DRAW: NOT), 
-                    INT32_MIN
+                    INT32_MIN,
+                    *p++
                 ));
-                
+            
             /**
              * undo the move
              */
@@ -890,8 +896,11 @@ namespace Homura {
          * Initialize the choice and
          * max score.
          */
-        Node* choice = nullptr;
+        Node* leftmost = nullptr;
+        Node* greedy = nullptr;
         int32_t maxScore = INT32_MIN;
+        int32_t maxPriority = INT32_MIN;
+        bool stillUnsearched = false;
 
         /**
          * Set the greedy selection 
@@ -905,14 +914,16 @@ namespace Homura {
          * in the child list.
          */
         i = 0;
+        int c = 0;
 
         /**
          * Loop through the children
          * of this node.
          */
-        foreach_node(x, children, ++i) {
-            if(x->alpha >= x->beta)
-                continue;
+        foreach_node(x, children) {
+            // if(x->alpha >= x->beta) {
+            //     ++c; continue;
+            // }
                 
             /**
              * Calculate current bounds.
@@ -925,8 +936,9 @@ namespace Homura {
              * child have crossed,
              * skip it.
              */
-            if(x->alpha >= x->beta)
-                continue;
+            if(x->alpha >= x->beta) {
+                ++i; continue;
+            }
 
             /**
              * Use Leftmost Policy in
@@ -944,26 +956,49 @@ namespace Homura {
              * child once and use the
              * Greedy Policy.
              */
-            if(!parent || i < margin || 
-                x->score == INT32_MIN)
-                return x;
-
-            /**
-             * Use Greedy Policy.
-             * Choose the child with
-             * the highest minimax
-             * value so far.
-             */
-            const int32_t l = -x->score;
-            if(l > maxScore) {
-                maxScore = l; choice = x;
+            int32_t p = x->priority;
+            if(p > maxPriority) {
+                maxPriority = p; leftmost = x;
             }
+
+            // // std::cout << p << '\n';
+
+            // if(stillUnsearched || x->score == INT32_MIN) {
+            //     stillUnsearched = true;
+            //     continue;
+            // }   
+
+            // /**
+            //  * Use Greedy Policy.
+            //  * Choose the child with
+            //  * the highest minimax
+            //  * value so far.
+            //  */
+            // p = -x->score;
+            // if(p > maxScore) {
+            //     maxScore = p; greedy = x;
+            // }
+        }
+
+        // std::cout << '\n';
+
+        // std::cout << maxPriority << '\n';
+
+        // if(i > 0) std::cout << maxPriority << '\n';
+        
+        
+        // if(maxPriority > 0) std::cout << maxPriority << "\n";
+        return leftmost;
+
+        if(!parent || c < margin || stillUnsearched) {
+            // if(leftmost == nullptr) std::cout << "UH, YOU'RE NULL\n";
+            return leftmost;
         }
 
         /**
          * Return the greedy choice.
          */
-        return choice;
+        return greedy;
     }
 
      ///////////////////////////////////////////////////////////
@@ -1283,7 +1318,7 @@ namespace Homura {
             << " {" << x->alpha << ", " << x->beta << "}, "
             << "{" << x->vminus << ", " << x->vplus << "}"
             << '\n';
-            c += treeWalk(x, depth + 1);
+            c += treePrint(x, depth + 1);
         }
         return c + 1;
     }
@@ -1323,12 +1358,13 @@ namespace Homura {
         Node* const p,
         const Move m,
         const TermType t,
-        const int32_t s
+        const int32_t s,
+        const int32_t pri
         )
     {
         lock_guard<mutex> ts(local); 
         ++count;
-        return pool.pop()->reset(p, m, t, s);
+        return ( pool.pop()->reset(p, m, t, s, pri) );
     }
 
       /////////////////////////////////////////////////////////

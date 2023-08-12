@@ -843,5 +843,41 @@ namespace Homura {
 
         template<> MoveList<MCTS>::MoveList(Board* const b) 
         { size = generateMoves<All>(b, m); }
+
+        template<> MoveList<MCTS>::MoveList(Board* const b, control* const q, const int d, int32_t* p) 
+        { 
+            // Generate attacks.
+            size = generateMoves<Aggressive>(b, m);
+            int i = 0;
+            for(; i < size; ++i) 
+            {
+                if(m[i] == q->pvMove)
+                {
+                    p[i] = INT32_MAX;
+                    
+                    continue;
+                }
+                p[i] = (int32_t) val
+                    [(uint32_t) b->getPiece(m[i].destination())][(uint32_t) b->getPiece(m[i].origin())];
+            }
+
+            size += generateMoves<Passive>(b, m + size); 
+            for(; i < size; ++i) 
+            {
+                if(m[i] == q->pvMove)
+                {
+                    p[i] = INT32_MAX;
+                    continue;
+                }
+                p[i] = (-INT32_MAX) +
+                    q->history[b->currentPlayer()][m[i].origin()][m[i].destination()];
+            }
+
+            // for(i = 0; i < size; ++i)
+            //     if(m[i] == q->pvMove)
+            //         std::cout << p[i] << '\n';
+
+            // std::cout << '\n';
+        }
     }
 } // namespace Homura

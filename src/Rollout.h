@@ -225,6 +225,11 @@ namespace Homura {
         int32_t         score;
 
         /**
+         * priority of this node.
+         */
+        int32_t         priority;
+
+        /**
          * The action taken to reach this
          * node.
          */
@@ -247,11 +252,11 @@ namespace Homura {
          * @param s the score of this node
          */
         constexpr Node(Node* const p,
-        const Move m, TermType t, int32_t s) :
+        const Move m, TermType t, int32_t s, int32_t pri) :
         parent(p), next(nullptr), pvNode(nullptr),
         alpha(-INT32_MAX), beta(INT32_MAX), 
         vminus(-INT32_MAX), vplus(INT32_MAX), 
-        score(s), move(m), 
+        score(s), priority(pri), move(m), 
         flags(t)
         { }
 
@@ -262,8 +267,8 @@ namespace Homura {
         parent(nullptr), next(nullptr), pvNode(nullptr),
         alpha(-INT32_MAX), beta(INT32_MAX), 
         vminus(-INT32_MAX), vplus(INT32_MAX), 
-        score(INT32_MIN), move(NullMove),
-        flags(NOT)
+        score(INT32_MIN), priority(INT32_MIN), 
+        move(NullMove), flags(NOT)
         { }
 
         constexpr Node(Node&&) = delete;
@@ -272,13 +277,14 @@ namespace Homura {
         constexpr Node& operator=(const Node&) = delete;
 
         Node* reset(Node* const p,
-        const Move m, TermType t, int32_t s) {
+        const Move m, TermType t, int32_t s, int32_t pri) {
             parent = p; pvNode = next = nullptr;
             alpha = p->alpha, vminus = -INT32_MAX;
             beta = p->beta, vplus = INT32_MAX;
             score = s;
             move = m;
             flags = t;
+            priority = pri;
             return this;
         }
 
@@ -690,7 +696,7 @@ namespace Homura {
          * 
          * @return a pointer to the allocated Node. 
          */
-        Node* alloc(Node*, Move, TermType, int32_t);
+        Node* alloc(Node*, Move, TermType, int32_t, int32_t);
 
         /**
          * Static tree utility methods.
