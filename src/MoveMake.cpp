@@ -809,18 +809,14 @@ namespace Homura {
          * @param q a pointer to the search controls.
          * @param d the depth (ply in this case).
          */
-        template<SearchType ST>
-        MoveList<ST>::MoveList(Board* const b, control* const q, const int d) { 
-            static_assert(ST == AB || ST == Q);
-            
+        template<>
+        MoveList<ROLL>::MoveList(Board* const b, control* const q, const int d) {
+            idx = -1;
             // Generate attacks.
             size = generateMoves<Aggressive>(b, m);
 
             // Sort attacks MVV-LVA.
             if(size > 1) _sort_attacks(b, m, m + (size - 1));
-
-            // If the search type is Quiescence, we are done.
-            if constexpr (ST != AB) return;
 
             // Generate quiets.
             Move* base = m + size;
@@ -838,10 +834,64 @@ namespace Homura {
             _sort_pvmove(m, e, q);
         }
 
+        /**
+         * A dumpster fire, yes... But a (hopefully) fast dumpster fire.
+         * 
+         * @tparam ST the search type.
+         * @param b a pointer to the board.
+         * @param q a pointer to the search controls.
+         * @param d the depth (ply in this case).
+         */
+        template<SearchType ST>
+        MoveList<ST>::MoveList(Board* const b, control* const q, const int d) {
+            static_assert(ST == AB || ST == Q);
+            idx = -1;
+
+            // Generate attacks.
+            size = generateMoves<Aggressive>(b, m);
+            int i = 0;
+            for(; i < size; ++i) 
+            {            
+                if(m[i] == q->pvMove)
+                {
+                    p[i] = INT32_MAX;
+                    continue;
+                }
+                p[i] = (int32_t) val
+                    [(uint32_t) b->getPiece(m[i].destination())][(uint32_t) b->getPiece(m[i].origin())];
+            }
+
+            if constexpr (ST == Q) {
+                return;
+            }
+
+            Move * base = m + size;
+            size += generateMoves<Passive>(b, base); 
+            for(; i < size; ++i) 
+            {
+                if(m[i] == q->pvMove)
+                {
+                    p[i] = INT32_MAX;
+                    continue;
+                }
+                if(m[i] == q->killers[d][0] || m[i] == q->killers[d][1])
+                    p[i] = -1;
+                else
+                    p[i] = (-INT32_MAX) +
+                        q->history[b->currentPlayer()][m[i].origin()][m[i].destination()];
+            }
+
+            // for(i = 0; i < size; ++i)
+            //     if(m[i] == q->pvMove)
+            //         std::cout << p[i] << '\n';
+
+            // std::cout << '\n';
+        }
+
         template MoveList<AB>::MoveList(Board*, control*, int);
         template MoveList<Q>::MoveList(Board*, control*, int);
 
         template<> MoveList<MCTS>::MoveList(Board* const b) 
-        { size = generateMoves<All>(b, m); }
+        { idx = 0; size = generateMoves<All>(b, m); }
     }
 } // namespace Homura

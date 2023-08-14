@@ -359,6 +359,15 @@ namespace Homura {
             Board b = Board::Builder
             <Default>(*_b).build();
 
+            // char info[500];
+            // search(
+            //     &b,
+            //     info,
+            //     c,
+            //     time
+            //     );
+            // return;
+
             /**
              * Reset the search 
              * controls.
@@ -740,7 +749,7 @@ namespace Homura {
          * History for a 
          * significant speedup.
          */
-        MoveList<AB> ml(b, c, d);
+        MoveList<ROLL> ml(b, c, d);
         Move *k = ml.begin(),
              *e = ml.end();
 

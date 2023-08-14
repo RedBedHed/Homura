@@ -143,5 +143,13 @@ namespace Homura {
         int32_t,
         control*
         );
+
+    Move search
+        (
+        Board *const b,
+        char* info,
+        control& q,
+        int time
+        );
 }
 #endif //HOMURA_BACKTRACK_H

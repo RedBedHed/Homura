@@ -92,7 +92,6 @@ namespace Homura {
          * evaluate and return.
          */
         if(r <= 0) {
-
             /**
              * start a q-search, 
              * stand pat and try 
@@ -376,7 +375,7 @@ namespace Homura {
          * PV, MVV-LVA, Killers, 
          * History.
          */
-        MoveList<AB> ml(b, c, d);
+        MoveList<ROLL> ml(b, c, d);
 
         /**
          * If the move list is
@@ -400,15 +399,15 @@ namespace Homura {
              * return 0.
              */
             else return 0;
-        } 
+        }
 
         /**
          * Initialize iterator
          * pointers.
          */
-        Move *  k = ml.begin(),
-        * const base = k,
-        * const e = ml.end();
+        // Move *  k = ml.begin(),
+        // * const base = k,
+        // * const e = ml.end();
 
         /**
          * Set high score to int min
@@ -417,6 +416,7 @@ namespace Homura {
          */
         int32_t highScore = INT32_MIN;
         Move hm = NullMove;
+        Move k = ml.nextMove();
 
         /**
          * Loop through every 
@@ -447,7 +447,7 @@ namespace Homura {
             /**
              * Do the move.
              */
-            b->applyMove(*k, s);
+            b->applyMove(k, s);
 
             /**
              * Does this move
@@ -475,13 +475,13 @@ namespace Homura {
             const bool concern = 
                 isAttack ||
                 inCheck || 
-                k->isPromotion() ||
+                k.isPromotion() ||
                 giveCheck;
 
             /*
              * PV Search
              */
-            if(k <= base) {
+            if(ml.getIdx() <= 0) {
 
                 /**
                  * Do a normal search
@@ -499,7 +499,7 @@ namespace Homura {
                  * search and re-search.
                  */
                 goto scoring;
-            }   
+            }               
 
             /**
              * Late Move Pruning.
@@ -511,8 +511,8 @@ namespace Homura {
             if(r <= LMP_RD && 
                 !pvNode &&
                 !concern &&
-                (k - base) > lmpMargins[r]) {
-                b->retractMove(*k); 
+                ml.getIdx() > lmpMargins[r]) {
+                b->retractMove(k); 
                 continue;
             }
 
@@ -520,7 +520,7 @@ namespace Homura {
              * Futility Pruning.
              */
             if(!concern && futile) {
-                b->retractMove(*k);
+                b->retractMove(k);
                 continue;
             }
 
@@ -540,13 +540,13 @@ namespace Homura {
                  * we have seen so far.
                  */
                 R = pvNode? 
-                    1 + (k - base) / 12: 
+                    1 + ml.getIdx() / 12: 
 
                     /**
                      * From Blunder.
                      */
                     std::max(2, r / 4) + 
-                    (k - base) / 12;
+                    ml.getIdx() / 12;
 
                 /**
                  * Try out the 
@@ -621,7 +621,7 @@ namespace Homura {
             /**
              * Undo the move.
              */
-            b->retractMove(*k);  
+            b->retractMove(k);
 
             /**
              * If we fail to raise
@@ -638,10 +638,10 @@ namespace Homura {
              */
             highScore = score;
             if constexpr (NT == IID)
-                c->iidMoves[d] = *k;
+                c->iidMoves[d] = k;
             if constexpr (NT == ROOT)
-                c->bestMove = *k;
-            hm = *k;
+                c->bestMove = k;
+            hm = k;
 
            /*
             * If we fail to raise
@@ -673,11 +673,11 @@ namespace Homura {
                  */
                 c->updateHistory<A>
                 (
-                    k->origin(),
-                    k->destination(), 
+                    k.origin(),
+                    k.destination(), 
                     r
                 );
-                c->addKiller(d, *k);
+                c->addKiller(d, k);
                 break;
             }
 
@@ -697,8 +697,8 @@ namespace Homura {
             if(!isAttack) {
                 c->raiseHistory<A>
                 (
-                    k->origin(),
-                    k->destination(), 
+                    k.origin(),
+                    k.destination(), 
                     r
                 );
             }
@@ -707,7 +707,7 @@ namespace Homura {
              * Set alpha.
              */
             a = score;
-        } while(++k < e);
+        } while((k = ml.nextMove()) != NullMove);
 
         /**
          * Cache this node's
@@ -862,8 +862,9 @@ namespace Homura {
              * Initialize iterator
              * pointers.
              */
-            Move *  k = ml.begin(),
-            * const e = ml.end();
+            // Move *  k = ml.begin(),
+            // * const e = ml.end();        
+            Move k = ml.nextMove();
 
             /**
              * Loop through every 
@@ -874,7 +875,7 @@ namespace Homura {
                 /**
                  * Do the move.
                  */
-                b->applyMove(*k, s);
+                b->applyMove(k, s);
 
                 /**
                  * Get this move's
@@ -890,7 +891,7 @@ namespace Homura {
                 /**
                  * Undo the move.
                  */
-                b->retractMove(*k);  
+                b->retractMove(k);  
 
                 /**
                  * Return beta if we
@@ -901,10 +902,12 @@ namespace Homura {
                 if(score >= o) return o;
                 if(score > a) a = score;
 
+                k = ml.nextMove();
+
                 /**
                  * Loop condition.
                  */
-                if(++k >= e) break;
+                if(k == NullMove) break;
             }
 
             /**
@@ -941,19 +944,17 @@ namespace Homura {
          * Initialize iterator
          * pointers.
          */
-        Move *  k = ml.begin(),
-        * const e = ml.end();
+        Move k = ml.nextMove();
 
         /**
          * Loop through every 
          * legal move.
          */
-        for(State s; k < e; ++k) {
-
+        for(State s; k != NullMove;) {
             /**
              * Do the move.
              */
-            b->applyMove(*k, s);
+            b->applyMove(k, s);
 
             /**
              * Get this move's
@@ -969,7 +970,7 @@ namespace Homura {
             /**
              * Undo the move.
              */
-            b->retractMove(*k);  
+            b->retractMove(k);  
 
             /**
              * Return beta if we
@@ -979,6 +980,8 @@ namespace Homura {
              */
             if(score >= o) return o;
             if(score > a) a = score;
+
+            k = ml.nextMove();
         }
         
         /**
@@ -1001,64 +1004,64 @@ namespace Homura {
      // ITERATIVE DEEPENING - FOR SCIENCE
     ////////////////////////////////////////////////////////////
 
-    // Move search
-    //     (
-    //     Board *const b,
-    //     char* info,
-    //     control& q,
-    //     int time
-    //     )
-    // {
-    //     q.epoch = system_clock::now();
-    //     q.time = time;
-    //     int depth = 1;
-    //     Move bestYet = NullMove;
-    //     int64_t beta = INT64_MAX, alpha = -INT64_MAX;
-    //     int nodes = 0;
-    //     do {
-    //         q.MAX_DEPTH = depth;
-    //         q.NULL_PLY = depth / 4;
-    //         q.Q_PLY    = 65;
-    //         q.NODES    = 0;
-    //         int64_t score = INT32_MIN;
-    //         Alliance a = b->currentPlayer();
-    //         if(a == White)
-    //             score = -alphaBeta
-    //             <White, ROOT>
-    //             (
-    //                 b, 0, depth,
-    //                 alpha, beta, &q
-    //             );
-    //         else 
-    //             score = -alphaBeta
-    //             <Black, ROOT>
-    //             (
-    //                 b, 0, depth,
-    //                 alpha, beta, &q
-    //             );
-    //         int64_t ms = elapsed(q.epoch);
-    //         if(ms >= time) break;
-    //         bestYet = q.bestMove;
-    //         nodes += q.NODES;
-    //         // if(score <= alpha || score >= beta) {
-    //         //     alpha = -INT32_MAX;
-    //         //     beta = INT32_MAX;
-    //         //     continue;
-    //         // }
-    //         std::cout << "info depth " 
-    //                   << depth
-    //                   << " score cp " 
-    //                   << -score
-    //                   << " nodes "
-    //                   << q.NODES
-    //                   <<  " nps " 
-    //                   << (ms >= 1000? nodes / (ms / 1000): nodes)
-    //                   << " time "
-    //                   << ms << '\n';
-    //         // alpha = score - 35;
-    //         // beta = score + 35;
-    //         ++depth;
-    //     } while(true);
-    //     return bestYet;
-    // }
+    Move search
+        (
+        Board *const b,
+        char* info,
+        control& q,
+        int time
+        )
+    {
+        q.epoch = system_clock::now();
+        q.time = time;
+        int depth = 1;
+        Move bestYet = NullMove;
+        int64_t beta = INT64_MAX, alpha = -INT64_MAX;
+        int nodes = 0;
+        do {
+            q.MAX_DEPTH = depth;
+            q.NULL_PLY = depth / 4;
+            q.Q_PLY    = 65;
+            q.NODES    = 0;
+            int64_t score = INT32_MIN;
+            Alliance a = b->currentPlayer();
+            if(a == White)
+                score = -alphaBeta
+                <White, ROOT>
+                (
+                    b, 0, depth,
+                    alpha, beta, &q
+                );
+            else 
+                score = -alphaBeta
+                <Black, ROOT>
+                (
+                    b, 0, depth,
+                    alpha, beta, &q
+                );
+            int64_t ms = elapsed(q.epoch);
+            if(ms >= time) break;
+            bestYet = q.bestMove;
+            nodes += q.NODES;
+            // if(score <= alpha || score >= beta) {
+            //     alpha = -INT32_MAX;
+            //     beta = INT32_MAX;
+            //     continue;
+            // }
+            std::cout << "info depth " 
+                      << depth
+                      << " score cp " 
+                      << -score
+                      << " nodes "
+                      << q.NODES
+                      <<  " nps " 
+                      << (ms >= 1000? nodes / (ms / 1000): nodes)
+                      << " time "
+                      << ms << '\n';
+            // alpha = score - 35;
+            // beta = score + 35;
+            ++depth;
+        } while(depth < MaxDepth);
+        return bestYet;
+    }
 }

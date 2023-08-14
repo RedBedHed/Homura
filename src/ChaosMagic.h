@@ -82,7 +82,7 @@ namespace Homura {
 
     /** The search types, enumerated. */
     enum SearchType : uint8_t
-    { MCTS, AB, Q };
+    { MCTS, AB, Q, ROLL };
 
     /** A table to convert a move type to a string. */
     constexpr const char* MoveTypeToString[] =

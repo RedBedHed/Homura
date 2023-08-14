@@ -215,6 +215,8 @@ namespace Homura {
              * waste
              */
             Move m[256];
+            int32_t p[256];
+            uint16_t idx;
 
             /**
              * The size of this MoveList.
@@ -226,6 +228,7 @@ namespace Homura {
              * A public constructor for a MoveList.
              */
             explicit MoveList(Board*, control*, int);
+            explicit MoveList(Board*, control*, int, int);
             explicit MoveList(Board*);
 
             /**
@@ -237,6 +240,22 @@ namespace Homura {
              */
             constexpr Move* begin()
             { return m; }
+
+            inline Move nextMove() 
+            {
+                if(++idx >= size)
+                    return NullMove;
+                int32_t max = p[idx], x = idx;
+                for(int i = idx + 1; i < size; ++i)
+                    if(p[i] > max) max = p[x = i];
+                Move t = m[x];
+                m[x] = m[idx];
+                p[x] = p[idx];
+                return t;
+            }
+
+            constexpr uint16_t getIdx() 
+            { return idx; }
 
             /**
              * A method to expose the pointer to the
