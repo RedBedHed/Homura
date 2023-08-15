@@ -375,7 +375,8 @@ namespace Homura {
          * PV, MVV-LVA, Killers, 
          * History.
          */
-        MoveList<ROLL> ml(b, c, d);
+        MoveList<AB> ml(b, c, d);
+        Move k = ml.nextMove();
 
         /**
          * If the move list is
@@ -383,7 +384,7 @@ namespace Homura {
          * is either a checkmate
          * or a stalemate.
          */
-        if(ml.length() <= 0) {
+        if(k == NullMove) {
 
             /**
              * If checkmate, 
@@ -402,22 +403,13 @@ namespace Homura {
         }
 
         /**
-         * Initialize iterator
-         * pointers.
-         */
-        // Move *  k = ml.begin(),
-        // * const base = k,
-        // * const e = ml.end();
-
-        /**
          * Set high score to int min
          * so that it is immediately
          * replaced.
          */
         int32_t highScore = INT32_MIN;
         Move hm = NullMove;
-        Move k = ml.nextMove();
-
+        
         /**
          * Loop through every 
          * legal move. We have
@@ -425,6 +417,7 @@ namespace Homura {
          * we aren't in mate.
          */
         do {
+            int idx = ml.getIdx();
 
             /**
              * A state for move
@@ -481,7 +474,7 @@ namespace Homura {
             /*
              * PV Search
              */
-            if(ml.getIdx() <= 0) {
+            if(idx <= 0) {
 
                 /**
                  * Do a normal search
@@ -511,7 +504,7 @@ namespace Homura {
             if(r <= LMP_RD && 
                 !pvNode &&
                 !concern &&
-                ml.getIdx() > lmpMargins[r]) {
+                idx > lmpMargins[r]) {
                 b->retractMove(k); 
                 continue;
             }
@@ -540,13 +533,13 @@ namespace Homura {
                  * we have seen so far.
                  */
                 R = pvNode? 
-                    1 + ml.getIdx() / 12: 
+                    1 + idx / 12: 
 
                     /**
                      * From Blunder.
                      */
                     std::max(2, r / 4) + 
-                    ml.getIdx() / 12;
+                    idx / 12;
 
                 /**
                  * Try out the 
@@ -855,16 +848,9 @@ namespace Homura {
              * empty, return mate
              * score.
              */
-            if(ml.length() <= 0) 
-                return -mateEval(d);
-            
-            /**
-             * Initialize iterator
-             * pointers.
-             */
-            // Move *  k = ml.begin(),
-            // * const e = ml.end();        
             Move k = ml.nextMove();
+            if(k == NullMove) 
+                return -mateEval(d);      
 
             /**
              * Loop through every 
@@ -902,12 +888,12 @@ namespace Homura {
                 if(score >= o) return o;
                 if(score > a) a = score;
 
-                k = ml.nextMove();
-
                 /**
                  * Loop condition.
                  */
-                if(k == NullMove) break;
+                if((k = ml.nextMove()) 
+                    == NullMove) 
+                    break;
             }
 
             /**
