@@ -598,8 +598,7 @@ namespace Homura {
             b->hasAttack() ||
             inCheck || 
             move.isPromotion() ||
-            giveCheck ||
-            c->isKiller(d, move);
+            giveCheck;
 
         /**
          * LATE MOVE REDUCTIONS
@@ -610,7 +609,9 @@ namespace Homura {
              * We're in a PV node, so
              * reduce conservatively
              */
-            R = 1 + i / 12;
+            R = 1 + c->pv_reductions[i];
+            R -= c->isKiller(d, move);
+            R += (R < 0);
 
             /**
              * REDUCED NULL-WINDOW SEARCH

@@ -52,7 +52,7 @@ namespace Homura {
      *//////////////////////////////////////////////////////////
 
     template
-    <Alliance A, NodeType NT, bool DO_NULL>
+    <Alliance A, NodeType NT, bool DO_NULL, bool CUT_NODE>
     int32_t alphaBeta
         (
         Board* const b,     /** Board           */
@@ -267,7 +267,7 @@ namespace Homura {
             State s;
             b->applyNullMove(s);
             const int32_t nms = 
-            -alphaBeta<~A, NONPV, false>
+            -alphaBeta<~A, NONPV, false, false>
             (
                 b, d + 1,
                 r - 1 - NULL_R, 
@@ -481,7 +481,7 @@ namespace Homura {
                  * beneath the first move.
                  */
                 score = 
-                -alphaBeta<~A, _N, true>
+                -alphaBeta<~A, _N, true, false>
                 (
                     b, d + 1, r - 1,
                     -o, -a, c
@@ -523,23 +523,18 @@ namespace Homura {
             if(!concern && r >= LMR_RD) {
 
                 /**
-                 * If this is a
-                 * pv node, reduce 
-                 * carefully. If not,
-                 * reduce a few plies
-                 * depending on the 
-                 * remaining depth and
-                 * the number of moves
-                 * we have seen so far.
+                 * Base reduction. 
                  */
-                R = pvNode? 
-                    1 + idx / 12: 
+                R = c->reductions[r][idx];
 
-                    /**
-                     * From Blunder.
-                     */
-                    std::max(2, r / 4) + 
-                    idx / 12;
+                /**
+                 * Base reduction. 
+                 */
+                R += CUT_NODE;
+                R -= improving;
+                R -= c->isKiller(d, *k);
+                R -= pvNode + pvNode;
+                R = std::max(0, R);
 
                 /**
                  * Try out the 
@@ -551,7 +546,7 @@ namespace Homura {
                  * re-search.
                  */
                 score = 
-                -alphaBeta<~A, NONPV, true>
+                -alphaBeta<~A, NONPV, true, true>
                 (
                     b, d + 1,
                     r - 1 - R, 
@@ -581,7 +576,7 @@ namespace Homura {
              * with null window.
              */
             score = 
-            -alphaBeta<~A, NONPV, true>
+            -alphaBeta<~A, NONPV, true, !CUT_NODE>
             (
                 b, d + 1,
                 r - 1, 
@@ -598,7 +593,7 @@ namespace Homura {
             if((score > a && (R > 0 || 
             NT == ROOT || score < o))) {
                 score = 
-                -alphaBeta<~A, _N, true>
+                -alphaBeta<~A, _N, true, false>
                 (
                     b, d + 1, r - 1,
                     -o, -a, c
@@ -727,34 +722,66 @@ namespace Homura {
      // EXPLICIT INSTANTIATIONS
     ////////////////////////////////////////////////////////////
 
-    template int32_t alphaBeta<White, PV>
+    template int32_t alphaBeta<White, PV, true, false>
     (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t alphaBeta<Black, PV>
-    (Board*, int, int, int32_t, int32_t, control*);
-
-    template int32_t alphaBeta<White, PV, false>
-    (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t alphaBeta<Black, PV, false>
+    template int32_t alphaBeta<Black, PV, true, false>
     (Board*, int, int, int32_t, int32_t, control*);
 
-    template int32_t alphaBeta<White, ROOT>
+    template int32_t alphaBeta<White, PV, false, false>
     (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t alphaBeta<Black, ROOT>
-    (Board*, int, int, int32_t, int32_t, control*);
-
-    template int32_t alphaBeta<White, NONPV, false>
-    (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t alphaBeta<Black, NONPV, false>
+    template int32_t alphaBeta<Black, PV, false, false>
     (Board*, int, int, int32_t, int32_t, control*);
 
-    template int32_t alphaBeta<White, IID, true>
+    template int32_t alphaBeta<White, ROOT, true, false>
     (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t alphaBeta<Black, IID, true>
+    template int32_t alphaBeta<Black, ROOT, true, false>
     (Board*, int, int, int32_t, int32_t, control*);
 
-    template int32_t alphaBeta<White, NONPV, true>
+    template int32_t alphaBeta<White, NONPV, false, false>
     (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t alphaBeta<Black, NONPV, true>
+    template int32_t alphaBeta<Black, NONPV, false, false>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    template int32_t alphaBeta<White, IID, true, false>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, IID, true, false>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    template int32_t alphaBeta<White, NONPV, true, false>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, NONPV, true, false>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    
+
+    template int32_t alphaBeta<White, PV, true, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, PV, true, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    template int32_t alphaBeta<White, PV, false, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, PV, false, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    template int32_t alphaBeta<White, ROOT, true, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, ROOT, true, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    template int32_t alphaBeta<White, NONPV, false, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, NONPV, false, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    template int32_t alphaBeta<White, IID, true, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, IID, true, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+
+    template int32_t alphaBeta<White, NONPV, true, true>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t alphaBeta<Black, NONPV, true, true>
     (Board*, int, int, int32_t, int32_t, control*);
 
      ///////////////////////////////////////////////////////////

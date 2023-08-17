@@ -662,26 +662,35 @@ namespace Homura {
         control::control() { clearHistory(); }
 
         void control::clearHistory() {
-            for(int i = 0; i < 2; ++i) {
-                for(int j = 0; j < 64; ++j) {
-                    for(int k = 0; k < 64; ++k) {
+            for(int i = 0; i < 2; ++i) 
+                for(int j = 0; j < 64; ++j) 
+                    for(int k = 0; k < 64; ++k) 
                         history[i][j][k] = 0;
-                    }
-                }
-            }
-            for(int i = 0; i < MaxDepth; ++i) {
+            for(int i = 0; i < MaxDepth; ++i) 
                 for(int j = 0; j < 2; ++j)
                     killers[i][j] = NullMove;
-            }
             for(int i = 0; i < MaxDepth; ++i)
                 iidMoves[i] = NullMove;
+            constexpr double m1 = 1.001204250630;
+            constexpr double m2 = 1.502405984023;
+            for(int i = 0; i < MaxDepth; ++i)
+                for(int j = 0; j < 256; ++j)
+                    reductions[i][j] = 
+                        int32_t(
+                            m1 * (double(i) /  4.0) + 
+                            m2 * (double(j) / 12.0)
+                        );
+            for(int j = 0; j < 256; ++j)
+                pv_reductions[j] = 
+                    int32_t( 
+                        m2 * (double(j) / 12.0)
+                    );
         }
 
         void control::addKiller(int depth, Move m) {
             if(killers[depth][0] == m)
                 return;
             killers[depth][1] = killers[depth][0];
-            killers[depth][0] = m;
         }
 
         bool control::isKiller(int depth, Move m) 

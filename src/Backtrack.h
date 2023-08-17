@@ -119,7 +119,7 @@ namespace Homura {
     /**
      * A classical backtracking Alpha-Beta search.
      */
-    template<Alliance A, NodeType NT, bool DO_NULL = true>
+    template<Alliance A, NodeType NT, bool DO_NULL = true, bool CUT_NODE = false>
     int32_t alphaBeta
         (
         Board*, 

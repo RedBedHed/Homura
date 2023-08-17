@@ -12,6 +12,7 @@
 #include <cassert>
 #include <algorithm>
 #include <mutex>
+#include <cmath>
 
 namespace Homura {
 
@@ -135,6 +136,8 @@ namespace Homura {
             uint64_t history[2][64][64];
             int64_t evals[MaxDepth];
             int64_t NODES;
+            int32_t reductions[65][256];
+            int32_t pv_reductions[256];
             int32_t MAX_DEPTH;
             int32_t NULL_PLY;
             int32_t Q_PLY;
