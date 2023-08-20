@@ -19,6 +19,7 @@ namespace Homura {
     enum TermType : uint8_t 
     { NOT = 0x00U,  DRAW = 0x02U,  WIN = 0x04U };
 
+    constexpr uint8_t LoudMask  =    0x08U;
     /**
      * The terminal mask to extract a TermType
      * from flag bits.
@@ -303,6 +304,11 @@ namespace Homura {
         constexpr int32_t getScore() 
         { return score; }
 
+
+        [[nodiscard]]
+        constexpr bool isLoud() 
+        { return flags & LoudMask; }
+
         /*
          * A method to perform a quiescence
          * search with this node as the root.
@@ -504,7 +510,8 @@ namespace Homura {
          * 
          * @return the selected child.
          */
-        Node* select(int&, uint32_t);
+        template<Alliance A, NodeType NT>
+        Node* select(Board* b, int&, uint32_t, uint32_t, control*);
 
         /**
          * A method to backpropagate bounds +

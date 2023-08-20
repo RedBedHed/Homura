@@ -233,7 +233,7 @@ namespace Homura {
              * Select a child with
              * leftmost-max tree policy.
              */
-            Node* k = n->select(idx, r);
+            Node* k = n->select<A>(b, idx, d, r, c);
 
             /**
              * If the child is null...
@@ -800,11 +800,14 @@ namespace Homura {
             children
                 .push_back(gc.alloc(
                     this, *k, 
-                    reply.length() <= 0?
-                    (inCheck? WIN: DRAW):
-                    (!isMatePossible(b) 
-                    || repeating(b, d)? 
-                    DRAW: NOT), 
+                    TermType(
+                    (reply.length() <= 0?
+                        (inCheck? WIN: DRAW):
+                        (!isMatePossible(b) 
+                        || repeating(b, d)? 
+                        DRAW: NOT)) | 
+                    (ml.loud(k) << 3U)
+                    ), 
                     INT32_MIN
                 ));
                 
@@ -890,10 +893,14 @@ namespace Homura {
     *** @version 05.11.2023
      *//////////////////////////////////////////////////////////
 
-    inline Node* Node::select
+    template<Alliance A>
+    Node* Node::select
         (
+        Board* const b,
         int& i,             /** Index, To Set   */
-        const uint32_t r    /** Remaining Depth */
+        const uint32_t d,
+        const uint32_t r,    /** Remaining Depth */
+        control* const c
         )
     {
         /**
@@ -907,7 +914,7 @@ namespace Homura {
          * Set the greedy selection 
          * margin.
          */
-        const uint32_t margin = r << 1U;
+        uint32_t margin = r << 1U;
 
         /**
          * Reset i. i will be the
@@ -954,7 +961,7 @@ namespace Homura {
              * child once and use the
              * Greedy Policy.
              */
-            if(!parent || i < margin || 
+            if(d < margin || i == 0 || x->isLoud() ||
                 x->score == INT32_MIN)
                 return x;
 

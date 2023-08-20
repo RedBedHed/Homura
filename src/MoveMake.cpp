@@ -828,13 +828,13 @@ namespace Homura {
             if(size > 1) _sort_attacks(b, m, m + (size - 1));
 
             // Generate quiets.
-            Move* base = m + size;
-            size += generateMoves<Passive>(b, base);
+            mid = m + size;
+            size += generateMoves<Passive>(b, mid);
             Move* const e = m + size - 1;
 
             // Sort the quiets.
-            base = _sort_killers(base, e, q, d);
-            if(e > base) _sort_quiets(b, base, e, q);
+            mid = _sort_killers(mid, e, q, d);
+            if(e > mid) _sort_quiets(b, mid, e, q);
 
             // If there isn't a pv move, we are done.
             if(q->pvMove == NullMove) return;
@@ -859,25 +859,24 @@ namespace Homura {
             // Generate attacks.
             size = generateMoves<Aggressive>(b, m);
             int i = 0;
-            for(; i < size; ++i) 
-            {            
+            for(; i < size; ++i) {            
                 if(m[i] == q->pvMove)
                 {
                     p[i] = INT32_MAX;
                     continue;
                 }
                 p[i] = (int32_t) val
-                    [(uint32_t) b->getPiece(m[i].destination())][(uint32_t) b->getPiece(m[i].origin())];
+                    [(uint32_t) b->getPiece(m[i].destination())]
+                    [(uint32_t) b->getPiece(m[i].origin())     ];
             }
 
             if constexpr (ST == Q) {
                 return;
             }
 
-            Move * base = m + size;
-            size += generateMoves<Passive>(b, base); 
-            for(; i < size; ++i) 
-            {
+            mid = m + size;
+            size += generateMoves<Passive>(b, mid); 
+            for(; i < size; ++i) {
                 if(m[i] == q->pvMove)
                 {
                     p[i] = INT32_MAX;
@@ -887,14 +886,11 @@ namespace Homura {
                     p[i] = -1;
                 else
                     p[i] = (-INT32_MAX) +
-                        q->history[b->currentPlayer()][m[i].origin()][m[i].destination()];
+                        q->history
+                        [b->currentPlayer()]
+                        [m[i].origin()     ]
+                        [m[i].destination()];
             }
-
-            // for(i = 0; i < size; ++i)
-            //     if(m[i] == q->pvMove)
-            //         std::cout << p[i] << '\n';
-
-            // std::cout << '\n';
         }
 
         template MoveList<AB>::MoveList(Board*, control*, int);

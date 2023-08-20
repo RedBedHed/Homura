@@ -220,6 +220,7 @@ namespace Homura {
             Move m[256];
             int32_t p[256];
             uint16_t idx;
+            Move* mid;
 
             /**
              * The size of this MoveList.
@@ -243,6 +244,9 @@ namespace Homura {
              */
             constexpr Move* begin()
             { return m; }
+
+            constexpr bool loud(Move* x) 
+            { return x < mid; }
 
             inline Move nextMove() 
             {
