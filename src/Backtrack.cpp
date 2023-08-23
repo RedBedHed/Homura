@@ -2,7 +2,7 @@
 // Created by evcmo on 12/30/2021.
 //
 
-#include "Backtrack.h"
+#include "Rollout.h"
 
 namespace Homura {
 
@@ -60,7 +60,8 @@ namespace Homura {
         const int r,        /** Remaining Depth */
         int32_t a,          /** Alpha           */
         int32_t o,          /** Beta            */
-        control* const c    /** Search Controls */
+        control* const c,   /** Search Controls */
+        MemManager& gc
         ) 
     {   
         /**
@@ -266,13 +267,33 @@ namespace Homura {
             b->hasMajorMinor()) {
             State s;
             b->applyNullMove(s);
-            const int32_t nms = 
-            -alphaBeta<~A, NONPV, false, false>
+            // const int32_t nms = 
+            // -alphaBeta<~A, NONPV, false, false>
+            // (
+            //     b, d + 1,
+            //     r - 1 - NULL_R, 
+            //     -o, -o + 1, c
+            // );
+
+            Node* n = new Node();
+            n->setAB(-o, -o + 1);
+
+            do {
+                alphaBetaRollout<~A, NONPV>
+                (
+                    b, n, d + 1,
+                    r - 1 - NULL_R, gc, c
+                );
+            } while
             (
-                b, d + 1,
-                r - 1 - NULL_R, 
-                -o, -o + 1, c
+                !n->converged() && 
+                !n->updateAB()
             );
+
+            int32_t nms = n->getScore();
+
+            gc.collect(n);
+
             b->retractNullMove();
             if(nms >= o && 
                std::abs(nms) < MinMate) 
@@ -314,7 +335,7 @@ namespace Homura {
          * The futility margin.
          */
         const int32_t fMargin = 
-            100 + (r - 1) * 48;
+            100 + (r - 1) * 48; // TODO: Try improving.
 
         /**
          * See if this is a futile 
@@ -352,7 +373,7 @@ namespace Homura {
             alphaBeta<A, IID, true>
             (
                 b, d, r - IID_R,
-                a, o, c
+                a, o, c, gc
             );
             ttmove = c->iidMoves[d];
         } 
@@ -484,7 +505,7 @@ namespace Homura {
                 -alphaBeta<~A, _N, true, false>
                 (
                     b, d + 1, r - 1,
-                    -o, -a, c
+                    -o, -a, c, gc
                 );
 
                 /**
@@ -530,7 +551,7 @@ namespace Homura {
                 /**
                  * Base reduction. 
                  */
-                R += CUT_NODE;
+                R += CUT_NODE; // TODO: Try double.
                 R -= improving;
                 R -= c->isKiller(d, *k);
                 R -= pvNode + pvNode;
@@ -550,7 +571,7 @@ namespace Homura {
                 (
                     b, d + 1,
                     r - 1 - R, 
-                    -a - 1, -a, c
+                    -a - 1, -a, c, gc
                 );
 
                 /**
@@ -580,7 +601,7 @@ namespace Homura {
             (
                 b, d + 1,
                 r - 1, 
-                -a - 1, -a, c
+                -a - 1, -a, c, gc
             );
             
             /** 
@@ -596,7 +617,7 @@ namespace Homura {
                 -alphaBeta<~A, _N, true, false>
                 (
                     b, d + 1, r - 1,
-                    -o, -a, c
+                    -o, -a, c, gc
                 );
             } 
 
@@ -723,66 +744,66 @@ namespace Homura {
     ////////////////////////////////////////////////////////////
 
     template int32_t alphaBeta<White, PV, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, PV, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, PV, false, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, PV, false, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, ROOT, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, ROOT, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, NONPV, false, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, NONPV, false, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, IID, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, IID, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, NONPV, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, NONPV, true, false>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     
 
     template int32_t alphaBeta<White, PV, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, PV, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, PV, false, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, PV, false, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, ROOT, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, ROOT, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, NONPV, false, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, NONPV, false, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, IID, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, IID, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
     template int32_t alphaBeta<White, NONPV, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
     template int32_t alphaBeta<Black, NONPV, true, true>
-    (Board*, int, int, int32_t, int32_t, control*);
+    (Board*, int, int, int32_t, int32_t, control*, MemManager&);
 
      ///////////////////////////////////////////////////////////
     /** 
@@ -1017,64 +1038,64 @@ namespace Homura {
      // ITERATIVE DEEPENING - FOR SCIENCE
     ////////////////////////////////////////////////////////////
 
-    Move search
-        (
-        Board *const b,
-        char* info,
-        control& q,
-        int time
-        )
-    {
-        q.epoch = system_clock::now();
-        q.time = time;
-        int depth = 1;
-        Move bestYet = NullMove;
-        int64_t beta = INT64_MAX, alpha = -INT64_MAX;
-        int nodes = 0;
-        do {
-            q.MAX_DEPTH = depth;
-            q.NULL_PLY = depth / 4;
-            q.Q_PLY    = 65;
-            q.NODES    = 0;
-            int64_t score = INT32_MIN;
-            Alliance a = b->currentPlayer();
-            if(a == White)
-                score = -alphaBeta
-                <White, ROOT>
-                (
-                    b, 0, depth,
-                    alpha, beta, &q
-                );
-            else 
-                score = -alphaBeta
-                <Black, ROOT>
-                (
-                    b, 0, depth,
-                    alpha, beta, &q
-                );
-            int64_t ms = elapsed(q.epoch);
-            if(ms >= time) break;
-            bestYet = q.bestMove;
-            nodes += q.NODES;
-            // if(score <= alpha || score >= beta) {
-            //     alpha = -INT32_MAX;
-            //     beta = INT32_MAX;
-            //     continue;
-            // }
-            std::cout << "info depth " 
-                      << depth
-                      << " score cp " 
-                      << -score
-                      << " nodes "
-                      << q.NODES
-                      <<  " nps " 
-                      << (ms >= 1000? nodes / (ms / 1000): nodes)
-                      << " time "
-                      << ms << '\n';
-            // alpha = score - 35;
-            // beta = score + 35;
-            ++depth;
-        } while(depth < MaxDepth);
-        return bestYet;
-    }
+    // Move search
+    //     (
+    //     Board *const b,
+    //     char* info,
+    //     control& q,
+    //     int time
+    //     )
+    // {
+    //     q.epoch = system_clock::now();
+    //     q.time = time;
+    //     int depth = 1;
+    //     Move bestYet = NullMove;
+    //     int64_t beta = INT64_MAX, alpha = -INT64_MAX;
+    //     int nodes = 0;
+    //     do {
+    //         q.MAX_DEPTH = depth;
+    //         q.NULL_PLY = depth / 4;
+    //         q.Q_PLY    = 65;
+    //         q.NODES    = 0;
+    //         int64_t score = INT32_MIN;
+    //         Alliance a = b->currentPlayer();
+    //         if(a == White)
+    //             score = -alphaBeta
+    //             <White, ROOT>
+    //             (
+    //                 b, 0, depth,
+    //                 alpha, beta, &q
+    //             );
+    //         else 
+    //             score = -alphaBeta
+    //             <Black, ROOT>
+    //             (
+    //                 b, 0, depth,
+    //                 alpha, beta, &q
+    //             );
+    //         int64_t ms = elapsed(q.epoch);
+    //         if(ms >= time) break;
+    //         bestYet = q.bestMove;
+    //         nodes += q.NODES;
+    //         // if(score <= alpha || score >= beta) {
+    //         //     alpha = -INT32_MAX;
+    //         //     beta = INT32_MAX;
+    //         //     continue;
+    //         // }
+    //         std::cout << "info depth " 
+    //                   << depth
+    //                   << " score cp " 
+    //                   << -score
+    //                   << " nodes "
+    //                   << q.NODES
+    //                   <<  " nps " 
+    //                   << (ms >= 1000? nodes / (ms / 1000): nodes)
+    //                   << " time "
+    //                   << ms << '\n';
+    //         // alpha = score - 35;
+    //         // beta = score + 35;
+    //         ++depth;
+    //     } while(depth < MaxDepth);
+    //     return bestYet;
+    // }
 }

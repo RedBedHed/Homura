@@ -1,7 +1,7 @@
 #include "Rollout.h"
 
 namespace Homura {
-    namespace {
+    // namespace {
 
          ///////////////////////////////////////////////////////////
         /** 
@@ -38,7 +38,7 @@ namespace Homura {
         *** @version 05.11.2023
          *//////////////////////////////////////////////////////////
 
-        template<Alliance A>
+        template<Alliance A, NodeType NT>
         void alphaBetaRollout
             (
             Board* const b,     /** Board             */
@@ -138,7 +138,7 @@ namespace Homura {
                  * root.
                  */
                 if(tt->depth >= r && 
-                    n->getParent()) {
+                    d != 0) {
                     
                     /**
                      * Get this Node's score.
@@ -211,9 +211,9 @@ namespace Homura {
                 /**
                  * INTERNAL ITERATIVE DEEPENING
                  */
-                if(c->pvMove == NullMove && 
+                if(NT == PV && c->pvMove == NullMove && 
                    r >= IID_RD) c->pvMove =
-                    n->iidSearch<A>(b, d, r, c);
+                    n->iidSearch<A>(b, d, r, c, gc);
 
                 /**
                  * Try making the children.
@@ -233,7 +233,7 @@ namespace Homura {
              * Select a child with
              * leftmost-max tree policy.
              */
-            Node* k = n->select<A>(b, idx, d, r, c);
+            Node* k = n->select<A, NT>(b, idx, d, r, c);
 
             /**
              * If the child is null...
@@ -265,13 +265,13 @@ namespace Homura {
                 /**
                  * NON-PV SEARCH
                  */
-                k->nonPVSearch<A>
-                (b, inCheck, d, r, idx, c)) {
+                k->nonPVSearch<A, NT>
+                (b, inCheck, d, r, idx, c, gc)) {
 
                 /**
                  * PV SEARCH
                  */
-                alphaBetaRollout<~A>
+                alphaBetaRollout<~A, NT>
                 (
                     b, k, d + 1, r - 1,
                     gc, c
@@ -311,6 +311,50 @@ namespace Homura {
                 );
             }
         }
+
+        template
+        void alphaBetaRollout<White, PV>
+            (
+            Board* const b,     /** Board             */
+            Node* const n,      /** Current Node      */
+            const int d,        /** Depth (ply)       */
+            const int r,        /** Remaining Depth   */
+            MemManager &gc,     /** Garbage Collector */
+            control* const c    /** Search Controls   */
+            );
+
+        template
+        void alphaBetaRollout<White, NONPV>
+            (
+            Board* const b,     /** Board             */
+            Node* const n,      /** Current Node      */
+            const int d,        /** Depth (ply)       */
+            const int r,        /** Remaining Depth   */
+            MemManager &gc,     /** Garbage Collector */
+            control* const c    /** Search Controls   */
+            );
+
+        template
+        void alphaBetaRollout<Black, PV>
+            (
+            Board* const b,     /** Board             */
+            Node* const n,      /** Current Node      */
+            const int d,        /** Depth (ply)       */
+            const int r,        /** Remaining Depth   */
+            MemManager &gc,     /** Garbage Collector */
+            control* const c    /** Search Controls   */
+            );
+
+        template
+        void alphaBetaRollout<Black, NONPV>
+            (
+            Board* const b,     /** Board             */
+            Node* const n,      /** Current Node      */
+            const int d,        /** Depth (ply)       */
+            const int r,        /** Remaining Depth   */
+            MemManager &gc,     /** Garbage Collector */
+            control* const c    /** Search Controls   */
+            );
 
          ///////////////////////////////////////////////////////////
         /** 
@@ -408,7 +452,7 @@ namespace Homura {
                      * Do an alpha-beta rollout
                      * from the root.
                      */
-                    alphaBetaRollout<A>
+                    alphaBetaRollout<A, PV>
                     (
                         &b, n, 0, c.MAX_DEPTH,
                         gc, &c
@@ -518,7 +562,7 @@ namespace Homura {
                 gc.reset();
             }
         }
-    }
+    // }
 
      ///////////////////////////////////////////////////////////
     /** 
@@ -564,7 +608,7 @@ namespace Homura {
     *** @version 05.11.2023
      *//////////////////////////////////////////////////////////
 
-    template<Alliance A>
+    template<Alliance A, NodeType NT>
     inline bool 
     Node::nonPVSearch
         (
@@ -573,7 +617,8 @@ namespace Homura {
         const int d,            /** Depth (ply)       */
         const int r,            /** Remaining Depth   */
         const int i,            /** This Node's Index */
-        control* const c        /** Search Controls   */
+        control* const c,       /** Search Controls   */
+        MemManager& gc
         ) 
     {
         int R = 0;
@@ -617,11 +662,11 @@ namespace Homura {
              * REDUCED NULL-WINDOW SEARCH
              */
             int32_t sc = -alphaBeta
-            <~A, NONPV, true>
+            <~A, NONPV, NT == NONPV? false: true, true>
             (
                 b, d + 1, r - 1 - R,
                 -parent->alpha - 1, 
-                -parent->alpha, c
+                -parent->alpha, c, gc
             );
 
             /**
@@ -638,11 +683,11 @@ namespace Homura {
          * NORMAL NULL-WINDOW SEARCH
          */
         int32_t sc = -alphaBeta
-        <~A, NONPV, true>
+        <~A, NONPV, NT == NONPV? false: true, false>
         (
             b, d + 1, r - 1,
             -parent->alpha - 1, 
-            -parent->alpha, c
+            -parent->alpha, c, gc
         );
 
         /**
@@ -670,24 +715,48 @@ namespace Homura {
         return false;
     }
 
-    template bool Node::nonPVSearch<White>
+    template bool Node::nonPVSearch<White, PV>
         (
         Board* const b,
         const bool inCheck,     
         const int d, 
         const int r, 
         const int i,
-        control* const c
+        control* const c,
+        MemManager& gc
         );
 
-    template bool Node::nonPVSearch<Black>
+    template bool Node::nonPVSearch<Black, PV>
         (
         Board* const b,
         const bool inCheck, 
         const int d, 
         const int r, 
         const int i,
-        control* const c
+        control* const c,
+        MemManager& gc
+        );
+
+    template bool Node::nonPVSearch<White, NONPV>
+        (
+        Board* const b,
+        const bool inCheck,     
+        const int d, 
+        const int r, 
+        const int i,
+        control* const c,
+        MemManager& gc
+        );
+
+    template bool Node::nonPVSearch<Black, NONPV>
+        (
+        Board* const b,
+        const bool inCheck, 
+        const int d, 
+        const int r, 
+        const int i,
+        control* const c,
+        MemManager& gc
         );
 
      ///////////////////////////////////////////////////////////
@@ -739,7 +808,7 @@ namespace Homura {
             (
                 b, d, r,
                 alpha, 
-                beta, c
+                beta, c, gc
             );
             return false;
         }
@@ -751,6 +820,16 @@ namespace Homura {
          * significant speedup.
          */
         MoveList<ROLL> ml(b, c, d);
+
+        if(ml.length() <= 0) // TODO: Find a better way.
+        {
+            std::cout << "hello";
+            score = contempt(b);
+            flags &= ~TermMask;
+            flags |= DRAW;
+            return false;
+        }
+
         Move *k = ml.begin(),
              *e = ml.end();
 
@@ -893,7 +972,7 @@ namespace Homura {
     *** @version 05.11.2023
      *//////////////////////////////////////////////////////////
 
-    template<Alliance A>
+    template<Alliance A, NodeType NT>
     Node* Node::select
         (
         Board* const b,
@@ -945,6 +1024,9 @@ namespace Homura {
             if(x->alpha >= x->beta)
                 continue;
 
+            if constexpr (NT == PV)
+                return x;
+
             /**
              * Use Leftmost Policy in
              * two cases:
@@ -961,7 +1043,7 @@ namespace Homura {
              * child once and use the
              * Greedy Policy.
              */
-            if(d < margin || i == 0 || x->isLoud() ||
+            if(i == 0 || //x->isLoud() ||
                 x->score == INT32_MIN)
                 return x;
 
@@ -1135,7 +1217,8 @@ namespace Homura {
         Board* const b,     /** Board             */
         const int d,        /** Depth (ply)       */
         const int r,        /** Remaining Depth   */
-        control* const c    /** Search Controls   */
+        control* const c,   /** Search Controls   */
+        MemManager& gc
         ) 
     {
         /**
@@ -1150,7 +1233,7 @@ namespace Homura {
         alphaBeta<A, IID, true>
         (
             b, d, r - 3,
-            alpha, beta, c
+            alpha, beta, c, gc
         );
 
         /**
@@ -1164,7 +1247,8 @@ namespace Homura {
         Board* const b, 
         const int d, 
         const int r, 
-        control* const c
+        control* const c,
+        MemManager& gc
         );
     
     template Move Node::iidSearch<White>
@@ -1172,7 +1256,8 @@ namespace Homura {
         Board* const b, 
         const int d, 
         const int r, 
-        control* const c
+        control* const c,
+        MemManager& gc
         );
 
      ///////////////////////////////////////////////////////////

@@ -25,7 +25,7 @@ MoveMake.o: MoveMake.cpp MoveMake.h Zobrist.h ChaosMagic.h
 Zobrist.o: Zobrist.cpp Zobrist.h 
 	$(CC) $(CFLAGS) -c Zobrist.cpp
 
-Backtrack.o: Backtrack.cpp Backtrack.h 
+Backtrack.o: Backtrack.cpp Rollout.h 
 	$(CC) $(CFLAGS) -c Backtrack.cpp
 
 Rollout.o: Rollout.cpp Rollout.h Backtrack.h
