@@ -510,7 +510,7 @@ namespace Homura {
          * 
          * @return the selected child.
          */
-        template<Alliance A, NodeType NT>
+        template<Alliance A>
         Node* select(Board* b, int&, uint32_t, uint32_t, control*);
 
         /**
@@ -629,7 +629,7 @@ namespace Homura {
          */
         void purgeCollection();
 
-        node_pool pool{10000};
+        node_pool pool{1000000};
     public:
 
         /**
@@ -659,7 +659,7 @@ namespace Homura {
                 sleep_for(milliseconds(100));
                 purgeCollection();
             }
-        })) { }
+        })) { std::cout << "hi\n"; }
 
         constexpr MemManager
         (MemManager&&) = delete;

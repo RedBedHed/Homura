@@ -13,18 +13,19 @@ namespace Homura::Zobrist {
         uint64_t BlackToMove;
         uint64_t WhiteToMove;
 
-        constexpr int tt_size = 1000001;
+        constexpr int tt_size = 0x800000;
+        constexpr int tt_mask = 0x7FFFFF;
 
         Entry* transTable;
 
         inline Entry* storage
             (
             uint64_t key, 
-            uint8_t depth, 
+            int8_t depth, 
             int64_t clock
             ) 
         {
-            const uint64_t slot = (key % tt_size);
+            const uint64_t slot = (key & tt_mask);
             Entry *e1 = transTable + slot;
 
             if (e1->key == key)        return e1;
@@ -71,7 +72,7 @@ namespace Homura::Zobrist {
         uint64_t key, 
         int64_t value, 
         EntryType type, 
-        uint8_t depth,
+        int8_t depth,
         Move move,
         int64_t clock
         ) 
@@ -90,7 +91,7 @@ namespace Homura::Zobrist {
         int64_t clock
         ) 
     {
-        const uint64_t slot = (index % tt_size);
+        const uint64_t slot = (index & tt_mask);
         Entry* e = transTable + slot;
 
         if(e->key == index) {
@@ -111,7 +112,7 @@ namespace Homura::Zobrist {
         Entry* k = transTable, 
         *const e = transTable + tt_size;
         while(k < e) 
-            *k++ = {0, 0, 0, undef, NullMove, uint8_t(-1)};
+            *k++ = {0, 0, 0, undef, NullMove, INT8_MAX};
     }
 
     void init() 

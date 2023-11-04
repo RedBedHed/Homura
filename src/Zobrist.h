@@ -47,7 +47,7 @@ namespace Homura {
             int64_t clock;
             EntryType type;   
             Move move;
-            uint8_t depth;
+            int8_t depth;
         };
 
         void init();
@@ -59,7 +59,7 @@ namespace Homura {
         uint64_t side(Alliance);
         template<Alliance> uint64_t get(PieceType, int);
         void clearTrans();
-        void store(uint64_t, int64_t, EntryType, uint8_t, Move, int64_t);
+        void store(uint64_t, int64_t, EntryType, int8_t, Move, int64_t);
         Entry* retrieve(uint64_t, int64_t);
         int64_t adjustForMate(int64_t score, int ply);
     }

@@ -85,6 +85,12 @@ namespace Homura {
             return contempt(b);
 
         /**
+         * Is this a PV node?
+         */
+        constexpr bool pvNode = 
+            NT != NONPV;
+
+        /**
          * If the node isn't
          * a draw, but
          * we are at the
@@ -98,7 +104,7 @@ namespace Homura {
              * to attacks.
              */
             return 
-                quiescence<A>
+                quiescence<A, pvNode? PV: NONPV>
                 (b, d, r, a, o, c);
         }
 
@@ -181,12 +187,6 @@ namespace Homura {
              */
             ttmove = tt->move;
         }
-
-        /**
-         * Is this a PV node?
-         */
-        constexpr bool pvNode = 
-            NT != NONPV;
 
         /**
          * Are we in check?
@@ -301,7 +301,7 @@ namespace Homura {
             r <= RAZ_RD &&
             (ev + rMargin) < a) {
             const int32_t rs = 
-            quiescence<A>
+            quiescence<A, NONPV>
             (
                 b, d, 0,
                 a - 1, a, c
@@ -828,7 +828,7 @@ namespace Homura {
     *** @version 05.11.2023
      *//////////////////////////////////////////////////////////
 
-    template<Alliance A>
+    template<Alliance A, NodeType NT>
     int32_t quiescence
         (
         Board* const b,     /** Board           */
@@ -839,11 +839,15 @@ namespace Homura {
         control* const c    /** Search Controls */
         ) 
     { 
-        if(abort(c->time, c->epoch)) 
+        const int32_t 
+            el = elapsed(c->epoch);
+        if(el >= c->time) 
             return 0;
 
         /* Count the nodes. */
         ++c->NODES;
+
+        c->pvMove = NullMove;
 
         /**
          * If we are drawn,
@@ -853,14 +857,82 @@ namespace Homura {
             repeating(b, d))
             return 0;
 
+        uint64_t inCheck = 
+        attacksOn<A, King>(
+        b, bitScanFwd
+        (b->getPieces<A, King>()));
+        
+        int8_t ttDepth = inCheck || r >= -1? -1: 0; // fix this... why is it working?
+
+        /**
+         * try retrieving 
+         * this node from the 
+         * transposition
+         * table.
+         */
+        uint64_t key = 
+        b->getState()->key;
+        Entry* tt = 
+            retrieve(key, el);
+
+        /**
+         * If the entry exists.
+         */
+        if(tt != nullptr && 
+            tt->move != NullMove) {
+
+            /**
+             * If the entry is valid
+             * and we are not at the
+             * root of a normal or
+             * IID search.
+             */
+            if(tt->depth >= ttDepth 
+                && !inCheck) {
+
+                /**
+                 * Get this node's score.
+                 */
+                int32_t score = tt->value;
+
+                /**
+                 * Adjust for mate.
+                 */
+                if(score <= -MateValue) 
+                    score += d;
+                else if(score >= MateValue) 
+                    score -= d;
+
+                /**
+                 * If the entry type is
+                 * exact, return its 
+                 * score.
+                 */
+                if constexpr (NT == NONPV) {
+                if(tt->type == exact ||
+                   (tt->type == lower && score >= o ) ||
+                   (tt->type == upper && score <= a ))
+                    return score;
+                }
+                
+            }
+
+            /**
+             * Set the PV move for
+             * use in move ordering.
+             */
+            c->pvMove = tt->move;
+
+        }
+
+        Move hm = NullMove;
+        int32_t oa = a;
+
         /**
          * Are we in check?
          * If so, extend.
          */
-        if(attacksOn<A, King>(
-            b, bitScanFwd
-        (b->getPieces<A, King>()))) {
-            c->pvMove = NullMove;
+        if(inCheck) {
 
             /**
              * We need to try to get 
@@ -879,6 +951,8 @@ namespace Homura {
             if(k == NullMove) 
                 return -mateEval(d);      
 
+            int32_t highScore = INT32_MIN;
+
             /**
              * Loop through every 
              * legal move.
@@ -895,7 +969,7 @@ namespace Homura {
                  * score.
                  */
                 const int32_t score = 
-                -quiescence<~A>
+                -quiescence<~A, NT>
                 (
                     b, d + 1, r - 1,
                     -o, -a, c
@@ -912,7 +986,11 @@ namespace Homura {
                  * alpha when it is
                  * raised.
                  */
-                if(score >= o) return o;
+                if(score > highScore) {
+                    hm = k;
+                    highScore = score;
+                }
+                if(score >= o) return highScore;
                 if(score > a) a = score;
 
                 /**
@@ -922,6 +1000,20 @@ namespace Homura {
                     == NullMove) 
                     break;
             }
+
+            /**
+             * Cache this node's
+             * info in the
+             * transposition
+             * table.
+             */
+            store(
+                key, highScore, 
+                highScore <= oa ? upper: 
+                highScore >= o  ? lower: 
+                exact, ttDepth, hm,
+                elapsed(c->epoch)
+            );
 
             /**
              * Return alpha if no
@@ -944,13 +1036,12 @@ namespace Homura {
          * stand pat.
          */
         int32_t sp = eval<A>(b);
-        if(sp >= o) return o;
+        if(sp >= o) return sp;
         if(a < sp)  a = sp;
 
         /**
          * MVV-LVA
          */
-        c->pvMove = NullMove;
         MoveList<Q> ml(b, c, d);
         
         /**
@@ -958,12 +1049,16 @@ namespace Homura {
          * pointers.
          */
         Move k = ml.nextMove();
+        if(k == NullMove) 
+            return sp; 
+
+        int32_t highScore = INT32_MIN;
 
         /**
          * Loop through every 
          * legal move.
          */
-        for(State s; k != NullMove;) {
+        for(State s;;) {
             /**
              * Do the move.
              */
@@ -974,7 +1069,7 @@ namespace Homura {
              * score.
              */
             const int32_t score = 
-            -quiescence<~A>
+            -quiescence<~A, NT>
             (
                 b, d + 1, r - 1,
                 -o, -a, c
@@ -991,11 +1086,34 @@ namespace Homura {
              * alpha when it is
              * raised.
              */
-            if(score >= o) return o;
+            if(score > highScore) {
+                hm = k;
+                highScore = score;
+            }
+            if(score >= o) return highScore;
             if(score > a) a = score;
 
-            k = ml.nextMove();
+            /**
+             * Loop condition.
+             */
+            if((k = ml.nextMove()) 
+                == NullMove) 
+                break;
         }
+
+        /**
+         * Cache this node's
+         * info in the
+         * transposition
+         * table.
+         */
+        store(
+            key, highScore, 
+            highScore <= oa ? upper: 
+            highScore >= o  ? lower: 
+            exact, ttDepth, hm,
+            elapsed(c->epoch)
+        );
         
         /**
          * Return alpha if no
@@ -1008,9 +1126,13 @@ namespace Homura {
      // EXPLICIT INSTANTIATIONS
     ////////////////////////////////////////////////////////////
 
-    template int32_t quiescence<White>
+    template int32_t quiescence<White, PV>
     (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t quiescence<Black>
+    template int32_t quiescence<Black, PV>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<White, NONPV>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<Black, NONPV>
     (Board*, int, int, int32_t, int32_t, control*);
 
       //////////////////////////////////////////////////////////

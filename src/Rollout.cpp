@@ -1091,7 +1091,7 @@ namespace Homura {
          */
         return 
             vminus = vplus = score = 
-            quiescence<A>
+            quiescence<A, PV>
             (b, 0, 0, alpha, beta, c);
     }
 
