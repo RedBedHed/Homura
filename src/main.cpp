@@ -1,7 +1,6 @@
 #include "Fen.h"
 #include <ostream>
 #include <iostream>
-#include <time.h>
 #include "Rollout.h"
 #include "analyzer.h"
 #include "Board.h"
@@ -98,47 +97,48 @@ void tryParseStartPos
         return;
     }
     a.nextTok();
-    while(a.peekTok().token == LITERAL)
+    while(a.peekTok().token == LITERAL) {
         t = a.nextTok();
-    if(t.token != LITERAL) {
-        cout << "invalid position arg: " << t.lexeme << '\n';
-        return;
-    }
-    Move mv;
-    if(t.lexeme.size() > 4) {
-        uint16_t i = 0;
-        switch(t.lexeme[4]) {
-            case 'q':
-                i = (Queen - Rook) << 12U;
-                break;
-            case 'n':
-                i = (Knight - Rook) << 12U;
-                break;
-            case 'r':
-                i = 0;
-                break;
-            case 'b':
-                i = (Bishop - Rook) << 12U;
-                break;
+        Move mv;
+        if(t.lexeme.size() > 4) {
+            uint16_t i = 0;
+            switch(t.lexeme[4]) {
+                case 'q':
+                    i = (Queen - Rook) << 12U;
+                    break;
+                case 'n':
+                    i = (Knight - Rook) << 12U;
+                    break;
+                case 'r':
+                    i = 0;
+                    break;
+                case 'b':
+                    i = (Bishop - Rook) << 12U;
+                    break;
+            }
+            mv = Move(moveMap[t.lexeme.substr(0, 4)].getManifest() | i | 0x8000U);
+        } else mv = moveMap[t.lexeme];
+        MoveList<MCTS> ml(b);
+        Move* k = ml.begin();
+        Move* e = ml.end();
+        for(; k < e; ++k) {
+            if(mv.origin() != 
+                (*k).origin() ||
+            mv.destination() != 
+                (*k).destination() ||
+                (t.lexeme.size() > 4 && 
+                mv.promotionPiece() != 
+                    (*k).promotionPiece())) 
+                continue;
+            b->applyMove(*k, *ss++);
+            break;
         }
-        mv = Move(moveMap[t.lexeme.substr(0, 4)].getManifest() | i | 0x8000U);
-    } else mv = moveMap[t.lexeme];
-    MoveList<MCTS> ml(b);
-    Move* k = ml.begin();
-    Move* e = ml.end();
-    for(; k < e; ++k) {
-        if(mv.origin() != 
-            (*k).origin() ||
-           mv.destination() != 
-            (*k).destination() ||
-            (t.lexeme.size() > 4 && 
-            mv.promotionPiece() != 
-                (*k).promotionPiece())) 
-            continue;
-        b->applyMove(*k, *ss++);
-        break;
     }
     return;
+}
+
+namespace {
+    int moves = 1;
 }
 
 void handleGo
@@ -152,23 +152,52 @@ void handleGo
     control& q
     ) 
 {
-    int time = 5000;
+    int hard = 5000;
+    int soft = 5000;
+    int inc = 0;
     if(a.peekTok().token != _EOF) {
         t = a.nextTok();
         switch(t.token) {
         case MOVETIME:
             t = a.nextTok();
-            time = atoi(t.lexeme.c_str());
+            hard = atoi(t.lexeme.c_str());
+            soft = INT32_MAX;
             break;
         case INFINITE: // infinite gives Homura five seconds. 
             break;
+        case WTIME:
+        {
+            if(b.currentPlayer() == White)
+            {
+                hard = stoi(a.nextTok().lexeme);
+                a.nextTok(); a.nextTok();
+                if(a.peekTok().token == WINC)
+                {
+                    a.nextTok();
+                    inc = stoi(a.nextTok().lexeme);
+                }
+            }
+            else
+            {
+                a.nextTok(); a.nextTok();
+                hard = stoi(a.nextTok().lexeme);
+                if(a.peekTok().token == WINC)
+                {
+                    a.nextTok(); a.nextTok(); a.nextTok();
+                    inc = stoi(a.nextTok().lexeme);
+                }
+            }
+
+            soft = std::clamp(int(0.6 * (hard / 20.0 + (inc * 3.0) / 4.0)), 1, hard);
+            hard = int(hard / 2.0);
+        }
         default:
             cout << "invalid go arg: " << t.lexeme << '\n';
             break;
         }
     }
     Homura::Node* n = new Homura::Node[100];
-    Move m = search(&b, info, n, gc, q, time); 
+    Move m = search(&b, info, n, gc, q, hard, soft); 
     cout << "info " << info << '\n';         
     b.applyMove(m, *ss++);
     cout << "bestmove " 
@@ -229,8 +258,11 @@ int main()
             Zobrist::reset();
             ss = stack;
             q.clearHistory();
+            moves = 1;
             break;
         case POSITION:
+            b = Board::Builder<Default>(state).build();
+            ss = stack;
             tryParseStartPos(a, &b, ss, gc, moveMap);
             break;
         case GO: 

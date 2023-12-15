@@ -11,6 +11,7 @@
 #include <iostream>
 #include <ostream>
 #include <string>
+#include <sstream>
 #include "ChaosMagic.h"
 
 namespace Homura {

@@ -44,7 +44,7 @@ namespace Homura {
             Board* const b,     /** Board             */
             Node* const n,      /** Current Node      */
             const int d,        /** Depth (ply)       */
-            const int r,        /** Remaining Depth   */
+            int r,              /** Remaining Depth   */
             MemManager &gc,     /** Garbage Collector */
             control* const c    /** Search Controls   */
             ) 
@@ -85,6 +85,19 @@ namespace Homura {
                 return;
             }
 
+            /**
+             * Are we in check?
+             */
+            const bool inCheck = 
+            attacksOn<A, King>(
+            b, bitScanFwd
+            (b->getPieces<A, King>()));
+
+            /*
+             * Check extensions. ~0 elo
+             */
+            r += inCheck;
+
            /*
             * If we reach a
             * non-terminal
@@ -98,7 +111,7 @@ namespace Homura {
                  * backtracking Q 
                  * search.
                  */
-                n->qSearch<A>(b, c);
+                n->qSearch<A>(b, c, d);
                 return;
             }
 
@@ -196,14 +209,6 @@ namespace Homura {
             } 
 
             /**
-             * Are we in check?
-             */
-            const bool inCheck = 
-            attacksOn<A, King>(
-            b, bitScanFwd
-            (b->getPieces<A, King>()));
-
-            /**
              * If we have no children.
              */
             if(n->hasNoChildren()) {
@@ -278,6 +283,10 @@ namespace Homura {
                 );
             }
 
+            const bool isAttack = b->hasAttack();
+
+            if(!isAttack) k->setMalus();
+
             /**
              * undo the move.
              */
@@ -298,6 +307,15 @@ namespace Homura {
 
                 Move pvMove = n->getPVMove();
                 int32_t highScore = n->getScore();
+
+                /**
+                 * Update the history if quiet 
+                 * beta cutoff. 
+                 */
+                if(highScore >= beta && !isAttack) {
+                    n->updateHistory<A>(c, r, move);
+                    c->addKiller(d, move);
+                }
 
                 /**
                  * Store the node.
@@ -343,12 +361,13 @@ namespace Homura {
          *//////////////////////////////////////////////////////////
 
         template<Alliance A>
-        void worker
+        void idLoop
             (
             Board *const _b,        /** Board             */
             Node* n,                /** Current Node      */
             MemManager& gc,         /** Garbage Collector */
             const int time,         /** allotted time     */
+            const int soft,         /** soft time         */
             Move& bestMove,         /** Best Move         */
             control& c              /** Search Controls   */
             )
@@ -358,15 +377,6 @@ namespace Homura {
              */
             Board b = Board::Builder
             <Default>(*_b).build();
-
-            // char info[500];
-            // search(
-            //     &b,
-            //     info,
-            //     c,
-            //     time
-            //     );
-            // return;
 
             /**
              * Reset the search 
@@ -387,7 +397,8 @@ namespace Homura {
              * Main iterative deepening 
              * loop.
              */
-            while(c.MAX_DEPTH < MaxDepth) {
+            while(c.MAX_DEPTH < MaxDepth && 
+                elapsed(c.epoch) < soft) {
                 int64_t lower, upper;
 
                 if(c.MAX_DEPTH > 6) {
@@ -947,12 +958,15 @@ namespace Homura {
 
             /**
              * Use Leftmost Policy in
-             * two cases:
+             * three cases:
              * 
-             * 1) If this node is the
+             * 1) If this child is an
+             * attack.
+             * 
+             * 2) If this node is the
              * root node.
              * 
-             * 2) If the index of this
+             * 3) If the index of this
              * child in the child list
              * is less than the
              * remaining depth * 2
@@ -981,6 +995,55 @@ namespace Homura {
          * Return the greedy choice.
          */
         return choice;
+    }
+
+     ///////////////////////////////////////////////////////////
+    /** 
+    *** NODE - UPDATE HISTORY           
+    ***
+    *** <summary>
+    *** <p>
+    *** In the event of a beta cutoff, we should update the
+    *** history.
+    *** </p>
+    *** </summary>
+    ***
+    *** @author Ellie Moore
+    *** @version 05.11.2023
+     *//////////////////////////////////////////////////////////
+
+    template<Alliance A>
+    inline void Node::updateHistory
+        (
+        control* c, 
+        int r,
+        Move m
+        )
+    {
+        /**
+         * Loop through the children
+         * of this node.
+         */
+        foreach_node(x, children) {
+
+            /**
+             * Malus!
+             */
+            if(x->malus() && x->move != m)
+            {
+                c->decayHistory<A>
+                (
+                    x->move.origin(), 
+                    x->move.destination(), 
+                    r
+                );
+            }
+        }
+
+        /**
+         * Update the history normally.
+         */
+        c->updateHistory<A>(m.origin(), m.destination(), r);
     }
 
      ///////////////////////////////////////////////////////////
@@ -1081,7 +1144,8 @@ namespace Homura {
     inline int32_t Node::qSearch
         (
         Board* const b,     /** Board             */
-        control* const c    /** Search Controls   */
+        control* const c,   /** Search Controls   */
+        int d               /** depth (ply)       */
         ) 
     {
         /**
@@ -1091,20 +1155,22 @@ namespace Homura {
          */
         return 
             vminus = vplus = score = 
-            quiescence<A>
-            (b, 0, 0, alpha, beta, c);
+            quiescence<A, PV>
+            (b, d, 0, alpha, beta, c);
     }
 
     template int32_t Node::qSearch<Black>
         (
         Board* const b, 
-        control* const c
+        control* const c,
+        int
         );
     
     template int32_t Node::qSearch<White>
         (
         Board* const b, 
-        control* const c
+        control* const c,
+        int
         );
 
      ///////////////////////////////////////////////////////////
@@ -1203,7 +1269,8 @@ namespace Homura {
         Node* &root,        /** Root Array Pointer */
         MemManager& gc,     /** Garbage Collector  */
         control& c,         /** Search Controls    */
-        const int time      /** Time Allotted      */
+        const int time,     /** Time Allotted      */
+        const int soft
         )
     {
         /**
@@ -1215,14 +1282,14 @@ namespace Homura {
         // return search(b, info, q, time);
         
         /**
-         * Call the worker routine
+         * Call the idLoop routine
          * with the correct alliance.
          */
         Move best;
         if(b->currentPlayer() == White) 
-            worker<White>(b, root, gc, time, best, c);
+            idLoop<White>(b, root, gc, time, soft, best, c);
         else 
-            worker<Black>(b, root, gc, time, best, c);
+            idLoop<Black>(b, root, gc, time, soft, best, c);
 
         /**
          * Fill the "info."

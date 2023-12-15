@@ -57,7 +57,7 @@ namespace Homura {
         (
         Board* const b,     /** Board           */
         const int d,        /** Depth (ply)     */
-        const int r,        /** Remaining Depth */
+        int r,              /** Remaining Depth */
         int32_t a,          /** Alpha           */
         int32_t o,          /** Beta            */
         control* const c    /** Search Controls */
@@ -98,7 +98,7 @@ namespace Homura {
              * to attacks.
              */
             return 
-                quiescence<A>
+                quiescence<A, NT>
                 (b, d, r, a, o, c);
         }
 
@@ -301,7 +301,7 @@ namespace Homura {
             r <= RAZ_RD &&
             (ev + rMargin) < a) {
             const int32_t rs = 
-            quiescence<A>
+            quiescence<A, NONPV>
             (
                 b, d, 0,
                 a - 1, a, c
@@ -315,6 +315,9 @@ namespace Homura {
          */
         const int32_t fMargin = 
             100 + (r - 1) * 48;
+
+        const int32_t hlMargin = 
+            150 + (r - 1) * 20;
 
         /**
          * See if this is a futile 
@@ -336,6 +339,13 @@ namespace Homura {
             std::abs(a) < MinMate &&
             std::abs(o) < MinMate &&
             (ev + fMargin) < a;
+
+
+        const bool hlfutile =
+            !pvNode &&
+            std::abs(a) < MinMate &&
+            std::abs(o) < MinMate &&
+            (ev + hlMargin) < a;
 
         /**
          * Internal iterative 
@@ -471,6 +481,9 @@ namespace Homura {
                 k.isPromotion() ||
                 giveCheck;
 
+            if(!isAttack)
+                ml.setMalus(k);
+
             /*
              * PV Search
              */
@@ -517,6 +530,23 @@ namespace Homura {
                 continue;
             }
 
+            // if(r - 1 - c->reductions
+            //     [r][idx] <= 6 && 
+            //     !concern &&
+            //     hlfutile) {
+            //     int64_t h = 
+            //         c->getHistory<A>
+            //         (
+            //         k.origin(), 
+            //         k.destination()
+            //         ) - (1 << 23);
+            //     if(h < 5997)
+            //     {
+            //         b->retractMove(k);
+            //         continue;
+            //     }
+            // }
+
             /**
              * Late Move Reductions.
              */
@@ -528,7 +558,7 @@ namespace Homura {
                 R = c->reductions[r][idx];
 
                 /**
-                 * Base reduction. 
+                 * Further reduction. 
                  */
                 R += CUT_NODE;
                 R -= improving;
@@ -659,12 +689,7 @@ namespace Homura {
                  * Update the 
                  * killers.
                  */
-                c->updateHistory<A>
-                (
-                    k.origin(),
-                    k.destination(), 
-                    r
-                );
+                ml.updateHistory<A>(c, r);
                 c->addKiller(d, k);
                 break;
             }
@@ -828,7 +853,7 @@ namespace Homura {
     *** @version 05.11.2023
      *//////////////////////////////////////////////////////////
 
-    template<Alliance A>
+    template<Alliance A, NodeType NT>
     int32_t quiescence
         (
         Board* const b,     /** Board           */
@@ -845,46 +870,88 @@ namespace Homura {
         /* Count the nodes. */
         ++c->NODES;
 
-        /**
-         * If we are drawn,
-         * return 0.
-         */
-        if(!isMatePossible(b) || 
-            repeating(b, d))
-            return 0;
+        bool pvNode = NT != NONPV;
+
+        c->pvMove = NullMove;
 
         /**
-         * Are we in check?
-         * If so, extend.
+         * try retrieving 
+         * this node from the 
+         * transposition
+         * table.
          */
+        uint64_t key = 
+        b->getState()->key;
+        Entry* tt = 
+            retrieve(key, elapsed(c->epoch));
+        
+        /**
+         * If the entry exists.
+         */
+        if(tt != nullptr && 
+           tt->move != NullMove) {
+
+            /**
+             * Get this node's score.
+             */
+            int32_t score = tt->value;
+
+            /**
+             * Adjust for mate.
+             */
+            if(score <= -MateValue) 
+                score += d;
+            else if(score >= MateValue) 
+                score -= d;
+
+            /**
+             * If the entry type is
+             * exact, return its 
+             * score.
+             */
+            if(tt->type == exact ||
+              (tt->type == lower && score >= o) ||
+              (tt->type == upper && score <= a))
+                return score;
+
+            /**
+             * Set the PV move for
+             * use in move ordering.
+             */
+            c->pvMove = tt->move;
+        }
+
         if(attacksOn<A, King>(
             b, bitScanFwd
         (b->getPieces<A, King>()))) {
-            c->pvMove = NullMove;
 
             /**
-             * We need to try to get 
-             * out of check.
-             * Try out both attacks
-             * and quiets.
+             * MVV-LVA
              */
             MoveList<AB> ml(b, c, d);
-
+            
             /**
-             * If the move list is
-             * empty, return mate
-             * score.
+             * Initialize iterator
+             * pointers.
              */
             Move k = ml.nextMove();
-            if(k == NullMove) 
-                return -mateEval(d);      
+
+            if(k == NullMove)
+                return -mateEval(d);
+
+            /**
+             * Set high score to int min
+             * so that it is immediately
+             * replaced.
+             */
+            Move hm = NullMove;
+            int32_t oa = a;
 
             /**
              * Loop through every 
              * legal move.
              */
             for(State s;;) {
-
                 /**
                  * Do the move.
                  */
@@ -895,7 +962,7 @@ namespace Homura {
                  * score.
                  */
                 const int32_t score = 
-                -quiescence<~A>
+                -quiescence<~A, NT>
                 (
                     b, d + 1, r - 1,
                     -o, -a, c
@@ -906,38 +973,41 @@ namespace Homura {
                  */
                 b->retractMove(k);  
 
-                /**
-                 * Return beta if we
-                 * fail high. Reset
-                 * alpha when it is
-                 * raised.
-                 */
-                if(score >= o) return o;
-                if(score > a) a = score;
+                if(score > a) {
+                    a = score;
+                    hm = k;
+                    if(score >= o) {
+                        a = o;
+                        hm = k;
+                        break;
+                    }
+                }
 
-                /**
-                 * Loop condition.
-                 */
                 if((k = ml.nextMove()) 
-                    == NullMove) 
+                    == NullMove)
                     break;
             }
 
+            /**
+             * Cache this node's
+             * info in the
+             * transposition
+             * table.
+             */
+            store(
+                key, a, 
+                a <= oa ? upper: 
+                a >= o  ? lower: 
+                exact, 0, hm,
+                elapsed(c->epoch)
+            );
+            
             /**
              * Return alpha if no
              * beta cutoff.
              */
             return a;
         }
-
-        /**
-         * If we've gone too
-         * deep, just evaluate and
-         * return the score.
-         */
-        if(r <= -c->Q_PLY) 
-            return 
-                eval<A>(b);
 
         /**
          * If we aren't in check,
@@ -950,7 +1020,6 @@ namespace Homura {
         /**
          * MVV-LVA
          */
-        c->pvMove = NullMove;
         MoveList<Q> ml(b, c, d);
         
         /**
@@ -958,6 +1027,14 @@ namespace Homura {
          * pointers.
          */
         Move k = ml.nextMove();
+
+        /**
+         * Set high score to int min
+         * so that it is immediately
+         * replaced.
+         */
+        Move hm = NullMove;
+        int32_t oa = a;
 
         /**
          * Loop through every 
@@ -974,7 +1051,7 @@ namespace Homura {
              * score.
              */
             const int32_t score = 
-            -quiescence<~A>
+            -quiescence<~A, NT>
             (
                 b, d + 1, r - 1,
                 -o, -a, c
@@ -985,17 +1062,33 @@ namespace Homura {
              */
             b->retractMove(k);  
 
-            /**
-             * Return beta if we
-             * fail high. Reset
-             * alpha when it is
-             * raised.
-             */
-            if(score >= o) return o;
-            if(score > a) a = score;
+            if(score > a) {
+                a = score;
+                hm = k;
+                
+                if(score >= o) {
+                    a = o;
+                    hm = k;
+                    break;
+                }
+            }
 
             k = ml.nextMove();
         }
+
+        /**
+         * Cache this node's
+         * info in the
+         * transposition
+         * table.
+         */
+        store(
+            key, a, 
+            a <= oa ? upper: 
+            a >= o  ? lower: 
+            exact, 0, hm,
+            elapsed(c->epoch)
+        );
         
         /**
          * Return alpha if no
@@ -1008,73 +1101,85 @@ namespace Homura {
      // EXPLICIT INSTANTIATIONS
     ////////////////////////////////////////////////////////////
 
-    template int32_t quiescence<White>
+    template int32_t quiescence<White, NONPV>
     (Board*, int, int, int32_t, int32_t, control*);
-    template int32_t quiescence<Black>
+    template int32_t quiescence<Black, NONPV>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<White, PV>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<Black, PV>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<White, ROOT>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<Black, ROOT>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<White, IID>
+    (Board*, int, int, int32_t, int32_t, control*);
+    template int32_t quiescence<Black, IID>
     (Board*, int, int, int32_t, int32_t, control*);
 
       //////////////////////////////////////////////////////////
      // ITERATIVE DEEPENING - FOR SCIENCE
     ////////////////////////////////////////////////////////////
 
-    Move search
-        (
-        Board *const b,
-        char* info,
-        control& q,
-        int time
-        )
-    {
-        q.epoch = system_clock::now();
-        q.time = time;
-        int depth = 1;
-        Move bestYet = NullMove;
-        int64_t beta = INT64_MAX, alpha = -INT64_MAX;
-        int nodes = 0;
-        do {
-            q.MAX_DEPTH = depth;
-            q.NULL_PLY = depth / 4;
-            q.Q_PLY    = 65;
-            q.NODES    = 0;
-            int64_t score = INT32_MIN;
-            Alliance a = b->currentPlayer();
-            if(a == White)
-                score = -alphaBeta
-                <White, ROOT>
-                (
-                    b, 0, depth,
-                    alpha, beta, &q
-                );
-            else 
-                score = -alphaBeta
-                <Black, ROOT>
-                (
-                    b, 0, depth,
-                    alpha, beta, &q
-                );
-            int64_t ms = elapsed(q.epoch);
-            if(ms >= time) break;
-            bestYet = q.bestMove;
-            nodes += q.NODES;
-            // if(score <= alpha || score >= beta) {
-            //     alpha = -INT32_MAX;
-            //     beta = INT32_MAX;
-            //     continue;
-            // }
-            std::cout << "info depth " 
-                      << depth
-                      << " score cp " 
-                      << -score
-                      << " nodes "
-                      << q.NODES
-                      <<  " nps " 
-                      << (ms >= 1000? nodes / (ms / 1000): nodes)
-                      << " time "
-                      << ms << '\n';
-            // alpha = score - 35;
-            // beta = score + 35;
-            ++depth;
-        } while(depth < MaxDepth);
-        return bestYet;
-    }
+    // Move search
+    //     (
+    //     Board *const b,
+    //     char* info,
+    //     control& q,
+    //     int time
+    //     )
+    // {
+    //     q.epoch = system_clock::now();
+    //     q.time = time;
+    //     int depth = 1;
+    //     Move bestYet = NullMove;
+    //     int64_t beta = INT64_MAX, alpha = -INT64_MAX;
+    //     int nodes = 0;
+    //     do {
+    //         q.MAX_DEPTH = depth;
+    //         q.NULL_PLY = depth / 4;
+    //         q.Q_PLY    = 65;
+    //         q.NODES    = 0;
+    //         int64_t score = INT32_MIN;
+    //         Alliance a = b->currentPlayer();
+    //         if(a == White)
+    //             score = -alphaBeta
+    //             <White, ROOT>
+    //             (
+    //                 b, 0, depth,
+    //                 alpha, beta, &q
+    //             );
+    //         else 
+    //             score = -alphaBeta
+    //             <Black, ROOT>
+    //             (
+    //                 b, 0, depth,
+    //                 alpha, beta, &q
+    //             );
+    //         int64_t ms = elapsed(q.epoch);
+    //         if(ms >= time) break;
+    //         bestYet = q.bestMove;
+    //         nodes += q.NODES;
+    //         // if(score <= alpha || score >= beta) {
+    //         //     alpha = -INT32_MAX;
+    //         //     beta = INT32_MAX;
+    //         //     continue;
+    //         // }
+    //         std::cout << "info depth " 
+    //                   << depth
+    //                   << " score cp " 
+    //                   << -score
+    //                   << " nodes "
+    //                   << q.NODES
+    //                   <<  " nps " 
+    //                   << (ms >= 1000? nodes / (ms / 1000): nodes)
+    //                   << " time "
+    //                   << ms << '\n';
+    //         // alpha = score - 35;
+    //         // beta = score + 35;
+    //         ++depth;
+    //     } while(depth < MaxDepth);
+    //     return bestYet;
+    // }
 }

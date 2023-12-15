@@ -15,16 +15,10 @@ using std::cout;
 using std::flush;
 using namespace Homura;
 
-struct Entry {
-    uint64_t key;
-    uint64_t value;
-    int depth;
-};
-
 int displayUsage();
 int charPerft(int, int, const char**);
 int charVerify(int, int, const char**);
-uint64_t perft(Board*, int, Entry*);
+uint64_t perft(Board*, int);
 
 int main(const int argc, const char** const argv) {
     if(argc <= 2 ||
@@ -64,10 +58,9 @@ inline int charPerft(const int n, const int argc, const char** const argv) {
     printf("%6.3f", (double) stop / (double) CLOCKS_PER_SEC);
     cout << " seconds\n";
     uint64_t j;
-    Entry transpositions[65536];
     for (int i = 1; i <= n; ++i) {
         start = clock();
-        j = perft(&b, i, transpositions);
+        j = perft(&b, i);
         stop = clock() - start;
         cout << "\n\tperft(" << i << ") - ";
         printf("%6.3f", (double) stop / (double) CLOCKS_PER_SEC);
@@ -80,28 +73,17 @@ inline int charPerft(const int n, const int argc, const char** const argv) {
     return 0;
 }
 
-uint64_t perft(Board* const b, int depth, Entry* transpositions) {
+uint64_t perft(Board* const b, int depth) {
     Move m[256];
     uint64_t i = 0, j;
     j = MoveFactory::generateMoves<All>(b, m);
     if(depth <= 1) {
-        /*for(Move* n = m; n->getManifest(); ++n) {
-            if(n->moveType() == EnPassant) i++;
-        }*/
         return j;
     }
     for(Move* n = m; n->getManifest(); ++n) {
         State x;
         b->applyMove(*n, x);
-        /*Entry* e = &transpositions[x.key & 0xFFFF];
-        if(e->key == x.key && e->depth == depth) {
-            i += e->value;
-        } else {
-            i += e->value = perft(b, depth - 1, transpositions);
-            e->key = x.key;
-            e->depth = depth;
-        }*/
-        i+=perft(b, depth - 1, transpositions);
+        i+=perft(b, depth - 1);
         b->retractMove(*n);
     }
     return i;
@@ -116,8 +98,7 @@ inline int charVerify(const int n, const int argc, const char** const argv) {
     const int z      = atoi(argv[5]);
     if(q <= 0) return displayUsage();
     Board b = FenUtility::parseBoard(argv[3], &x);
-    Entry transpositions[65536];
-    uint64_t  j = perft(&b, n, transpositions);
+    uint64_t  j = perft(&b, n);
     cout << (z? (int) z: (char)'-')      << ' '
          << (j == q? "passed": "failed") << '\n';
     Witchcraft::destroy();

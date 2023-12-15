@@ -133,7 +133,7 @@ namespace Homura {
     /**
      * A classical backtracking quiescence search.
      */
-    template<Alliance A>
+    template<Alliance A, NodeType NT>
     int32_t quiescence
         (
         Board*, 

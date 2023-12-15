@@ -16,6 +16,9 @@
 
 namespace Homura {
 
+    constexpr uint32_t see_values[] = 
+    { 100, 650, 450, 450, 1250, 0, 0 };
+
     /**
      * TODO: MOVE BACK TO ANON NAMESPACE IN CPP !!!
      *
@@ -47,6 +50,30 @@ namespace Homura {
                (SquareToKnightAttacks[sq]   & board->getPieces<them, Knight>()) |
                (SquareToPawnAttacks[us][sq] & board->getPieces<them, Pawn>())   |
                (SquareToKingAttacks[sq]     & board->getPieces<them, King>());
+    }
+
+    [[nodiscard]]
+    constexpr uint64_t attacksOn(Board* const board, const uint64_t occupied, const int sq) {
+
+        constexpr const Alliance us = White, them = ~us;
+
+        // Initialize constants.
+        const uint64_t queens = board->getPieces<us, Queen>() | 
+                                board->getPieces<them, Queen>();
+
+        // Calculate and return a bitboard representing all attackers.
+        return (attackBoard<Rook>(occupied, sq) &
+               (board->getPieces<us, Rook>()   
+                    | board->getPieces<them, Rook>()   | queens)) |
+               (attackBoard<Bishop>(occupied, sq) &
+               (board->getPieces<us, Bishop>() 
+                    | board->getPieces<them, Bishop>() | queens)) |
+               (SquareToKnightAttacks[sq] & 
+                    (board->getPieces<us, Knight>() | board->getPieces<them, Knight>())) |
+               (SquareToPawnAttacks[them][sq]   & board->getPieces<us, Pawn>())   |
+               (SquareToPawnAttacks[us][sq] & board->getPieces<them, Pawn>()) |
+               (SquareToKingAttacks[sq] & 
+                    (board->getPieces<us, King>() | board->getPieces<them, King>()));
     }
 
     /**
@@ -133,7 +160,7 @@ namespace Homura {
          */
         struct control final {
             timer_t epoch;
-            uint64_t history[2][64][64];
+            int64_t history[2][64][64];
             int64_t evals[MaxDepth];
             int64_t NODES;
             int32_t reductions[65][256];
@@ -150,6 +177,7 @@ namespace Homura {
             control();
 
             template<Alliance> void updateHistory(int,int,int);
+            template<Alliance> void decayHistory(int,int,int);
             template<Alliance> void raiseHistory(int,int,int);
             template<Alliance> void removeHistory(int,int,int);
             void clearHistory();
@@ -218,9 +246,11 @@ namespace Homura {
              * waste
              */
             Move m[256];
-            int32_t p[256];
+            Move qq[256];
+            int64_t p[256];
             uint16_t idx;
             Move* mid;
+            uint16_t qIdx;
 
             /**
              * The size of this MoveList.
@@ -252,13 +282,30 @@ namespace Homura {
             {
                 if(++idx >= size)
                     return NullMove;
-                int32_t max = p[idx], x = idx;
+                int64_t max = p[idx];
+                int32_t x = idx;
                 for(int i = idx + 1; i < size; ++i)
                     if(p[i] > max) max = p[x = i];
                 Move t = m[x];
                 m[x] = m[idx];
                 p[x] = p[idx];
                 return t;
+            }
+
+            constexpr void setMalus(Move k)
+            { qq[qIdx++] = k; }
+
+            template<Alliance A>
+            constexpr void updateHistory(control* c, int r)
+            {
+                for(int i = 0; i < qIdx - 1; ++i)
+                {
+                    Move p = qq[i];
+                    c->decayHistory<A>(p.origin(), p.destination(), r);
+                }
+
+                Move k = qq[qIdx - 1];
+                c->updateHistory<A>(k.origin(), k.destination(), r);
             }
 
             constexpr uint16_t getIdx() 
