@@ -510,7 +510,7 @@ namespace Homura {
          * 
          * @return the selected child.
          */
-        template<Alliance A, NodeType NT>
+        template<Alliance A>
         Node* select(Board* b, int&, uint32_t, uint32_t, control*);
 
         /**

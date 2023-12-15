@@ -98,45 +98,42 @@ void tryParseStartPos
         return;
     }
     a.nextTok();
-    while(a.peekTok().token == LITERAL)
+    while(a.peekTok().token == LITERAL) {
         t = a.nextTok();
-    if(t.token != LITERAL) {
-        cout << "invalid position arg: " << t.lexeme << '\n';
-        return;
-    }
-    Move mv;
-    if(t.lexeme.size() > 4) {
-        uint16_t i = 0;
-        switch(t.lexeme[4]) {
-            case 'q':
-                i = (Queen - Rook) << 12U;
-                break;
-            case 'n':
-                i = (Knight - Rook) << 12U;
-                break;
-            case 'r':
-                i = 0;
-                break;
-            case 'b':
-                i = (Bishop - Rook) << 12U;
-                break;
+        Move mv;
+        if(t.lexeme.size() > 4) {
+            uint16_t i = 0;
+            switch(t.lexeme[4]) {
+                case 'q':
+                    i = (Queen - Rook) << 12U;
+                    break;
+                case 'n':
+                    i = (Knight - Rook) << 12U;
+                    break;
+                case 'r':
+                    i = 0;
+                    break;
+                case 'b':
+                    i = (Bishop - Rook) << 12U;
+                    break;
+            }
+            mv = Move(moveMap[t.lexeme.substr(0, 4)].getManifest() | i | 0x8000U);
+        } else mv = moveMap[t.lexeme];
+        MoveList<MCTS> ml(b);
+        Move* k = ml.begin();
+        Move* e = ml.end();
+        for(; k < e; ++k) {
+            if(mv.origin() != 
+                (*k).origin() ||
+            mv.destination() != 
+                (*k).destination() ||
+                (t.lexeme.size() > 4 && 
+                mv.promotionPiece() != 
+                    (*k).promotionPiece())) 
+                continue;
+            b->applyMove(*k, *ss++);
+            break;
         }
-        mv = Move(moveMap[t.lexeme.substr(0, 4)].getManifest() | i | 0x8000U);
-    } else mv = moveMap[t.lexeme];
-    MoveList<MCTS> ml(b);
-    Move* k = ml.begin();
-    Move* e = ml.end();
-    for(; k < e; ++k) {
-        if(mv.origin() != 
-            (*k).origin() ||
-           mv.destination() != 
-            (*k).destination() ||
-            (t.lexeme.size() > 4 && 
-            mv.promotionPiece() != 
-                (*k).promotionPiece())) 
-            continue;
-        b->applyMove(*k, *ss++);
-        break;
     }
     return;
 }
@@ -231,6 +228,8 @@ int main()
             q.clearHistory();
             break;
         case POSITION:
+            b = Board::Builder<Default>(state).build();
+            ss = stack;
             tryParseStartPos(a, &b, ss, gc, moveMap);
             break;
         case GO: 
