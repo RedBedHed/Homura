@@ -93,6 +93,9 @@ namespace Homura {
             b, bitScanFwd
             (b->getPieces<A, King>()));
 
+            /*
+             * Check extensions. ~0 elo
+             */
             r += inCheck;
 
            /*
