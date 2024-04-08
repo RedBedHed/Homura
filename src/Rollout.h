@@ -317,7 +317,8 @@ namespace Homura {
         int32_t qSearch
             (
             Board*, 
-            control*
+            control*,
+            int
             );
 
         /*
@@ -741,7 +742,7 @@ namespace Homura {
      * 
      * @return the best move
      */
-    Move search(Board*, char*, Node*&, MemManager&, control&, int);
+    Move search(Board*, char*, Node*&, MemManager&, control&, int, int);
 }
 
 #endif

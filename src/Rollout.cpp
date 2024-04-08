@@ -44,7 +44,7 @@ namespace Homura {
             Board* const b,     /** Board             */
             Node* const n,      /** Current Node      */
             const int d,        /** Depth (ply)       */
-            const int r,        /** Remaining Depth   */
+            int r,              /** Remaining Depth   */
             MemManager &gc,     /** Garbage Collector */
             control* const c    /** Search Controls   */
             ) 
@@ -85,6 +85,16 @@ namespace Homura {
                 return;
             }
 
+            /**
+             * Are we in check?
+             */
+            const bool inCheck = 
+            attacksOn<A, King>(
+            b, bitScanFwd
+            (b->getPieces<A, King>()));
+
+            r += inCheck;
+
            /*
             * If we reach a
             * non-terminal
@@ -98,7 +108,7 @@ namespace Homura {
                  * backtracking Q 
                  * search.
                  */
-                n->qSearch<A>(b, c);
+                n->qSearch<A>(b, c, d);
                 return;
             }
 
@@ -194,14 +204,6 @@ namespace Homura {
                  */
                 c->pvMove = tt->move; 
             } 
-
-            /**
-             * Are we in check?
-             */
-            const bool inCheck = 
-            attacksOn<A, King>(
-            b, bitScanFwd
-            (b->getPieces<A, King>()));
 
             /**
              * If we have no children.
@@ -349,6 +351,7 @@ namespace Homura {
             Node* n,                /** Current Node      */
             MemManager& gc,         /** Garbage Collector */
             const int time,         /** allotted time     */
+            const int soft,         /** soft time         */
             Move& bestMove,         /** Best Move         */
             control& c              /** Search Controls   */
             )
@@ -387,7 +390,8 @@ namespace Homura {
              * Main iterative deepening 
              * loop.
              */
-            while(c.MAX_DEPTH < MaxDepth) {
+            while(c.MAX_DEPTH < MaxDepth && 
+                elapsed(c.epoch) < soft) {
                 int64_t lower, upper;
 
                 if(c.MAX_DEPTH > 6) {
@@ -1081,7 +1085,8 @@ namespace Homura {
     inline int32_t Node::qSearch
         (
         Board* const b,     /** Board             */
-        control* const c    /** Search Controls   */
+        control* const c,   /** Search Controls   */
+        int d               /** depth (ply)       */
         ) 
     {
         /**
@@ -1091,20 +1096,22 @@ namespace Homura {
          */
         return 
             vminus = vplus = score = 
-            quiescence<A>
-            (b, 0, 0, alpha, beta, c);
+            quiescence<A, PV>
+            (b, d, 0, alpha, beta, c);
     }
 
     template int32_t Node::qSearch<Black>
         (
         Board* const b, 
-        control* const c
+        control* const c,
+        int
         );
     
     template int32_t Node::qSearch<White>
         (
         Board* const b, 
-        control* const c
+        control* const c,
+        int
         );
 
      ///////////////////////////////////////////////////////////
@@ -1203,7 +1210,8 @@ namespace Homura {
         Node* &root,        /** Root Array Pointer */
         MemManager& gc,     /** Garbage Collector  */
         control& c,         /** Search Controls    */
-        const int time      /** Time Allotted      */
+        const int time,     /** Time Allotted      */
+        const int soft
         )
     {
         /**
@@ -1220,9 +1228,9 @@ namespace Homura {
          */
         Move best;
         if(b->currentPlayer() == White) 
-            worker<White>(b, root, gc, time, best, c);
+            worker<White>(b, root, gc, time, soft, best, c);
         else 
-            worker<Black>(b, root, gc, time, best, c);
+            worker<Black>(b, root, gc, time, soft, best, c);
 
         /**
          * Fill the "info."

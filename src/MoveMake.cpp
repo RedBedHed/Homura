@@ -38,10 +38,11 @@ namespace Homura {
          */
         inline Move*
         makePromotions(Move* moves, const int o, const int d) {
-            *moves++ = Move::makePromotion<Rook  >(o, d);
-            *moves++ = Move::makePromotion<Knight>(o, d);
-            *moves++ = Move::makePromotion<Bishop>(o, d);
+            // Order the promotions by value, gained 28 elo.
             *moves++ = Move::makePromotion<Queen >(o, d);
+            *moves++ = Move::makePromotion<Rook  >(o, d);
+            *moves++ = Move::makePromotion<Bishop>(o, d);
+            *moves++ = Move::makePromotion<Knight>(o, d);
             return moves;
         }
 
