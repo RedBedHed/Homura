@@ -316,6 +316,9 @@ namespace Homura {
         const int32_t fMargin = 
             100 + (r - 1) * 48;
 
+        const int32_t hlMargin = 
+            150 + (r - 1) * 20;
+
         /**
          * See if this is a futile 
          * node. (static evaluation
@@ -336,6 +339,13 @@ namespace Homura {
             std::abs(a) < MinMate &&
             std::abs(o) < MinMate &&
             (ev + fMargin) < a;
+
+
+        const bool hlfutile =
+            !pvNode &&
+            std::abs(a) < MinMate &&
+            std::abs(o) < MinMate &&
+            (ev + hlMargin) < a;
 
         /**
          * Internal iterative 
@@ -517,6 +527,18 @@ namespace Homura {
                 continue;
             }
 
+            // if(r - 1 - c->reductions
+            //     [r][idx] <= 6 && 
+            //     !concern &&
+            //     hlfutile) {
+            //     int64_t h = c->getHistory<A>(k.origin(), k.destination()) - (1 << 24);
+            //     if(h < 5997)
+            //     {
+            //         b->retractMove(k);
+            //         continue;
+            //     }
+            // }
+
             /**
              * Late Move Reductions.
              */
@@ -528,7 +550,7 @@ namespace Homura {
                 R = c->reductions[r][idx];
 
                 /**
-                 * Base reduction. 
+                 * Further reduction. 
                  */
                 R += CUT_NODE;
                 R -= improving;

@@ -691,7 +691,9 @@ namespace Homura {
         void control::addKiller(int depth, Move m) {
             if(killers[depth][0] == m)
                 return;
+            // ~40 elo
             killers[depth][1] = killers[depth][0];
+            killers[depth][0] = m;
         }
 
         bool control::isKiller(int depth, Move m) 
@@ -722,7 +724,7 @@ namespace Homura {
         template<Alliance A>
         void control::updateHistory(int origin, int dest, int depth) {
             history[A][origin][dest] += depth*depth;   
-            if (history[A][origin][dest] >= UINT32_MAX)
+            if (history[A][origin][dest] >= INT32_MAX - 3)
                 ageHistory();
         }
 
@@ -732,7 +734,7 @@ namespace Homura {
         template<Alliance A>
         void control::raiseHistory(int origin, int dest, int depth) {
             history[A][origin][dest] += depth;   
-            if (history[A][origin][dest] >= UINT32_MAX)
+            if (history[A][origin][dest] >= INT32_MAX - 3)
                 ageHistory();
         }
 
@@ -883,8 +885,10 @@ namespace Homura {
                     p[i] = INT32_MAX;
                     continue;
                 }
-                if(m[i] == q->killers[d][0] || m[i] == q->killers[d][1])
+                if(m[i] == q->killers[d][0])
                     p[i] = -1;
+                if(m[i] == q->killers[d][1])
+                    p[i] = -2;
                 else
                     p[i] = (-INT32_MAX) +
                         q->history
