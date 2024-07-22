@@ -643,6 +643,111 @@ namespace Homura {
 
             return (moves - initialMove);
         }
+
+        inline uint32_t getValue(Board* const board, Move move) {
+            if(move.moveType() == Castling)
+                return 0;
+            else if(move.moveType() == EnPassant)
+                return 100;
+
+            uint32_t score = see_values[board->getPiece(move.destination())];
+
+            if(move.isPromotion())
+                score += see_values[move.promotionPiece()] - 100;
+
+            return score;
+        }
+
+        constexpr PieceType getNextVictim(Board* const b, 
+                                          Alliance a, 
+                                          uint64_t attackers) {
+            if(attackers & b->getPieces(a, Pawn))   return Pawn;
+            if(attackers & b->getPieces(a, Knight)) return Knight;
+            if(attackers & b->getPieces(a, Bishop)) return Bishop;
+            if(attackers & b->getPieces(a, Rook))   return Rook;
+            if(attackers & b->getPieces(a, Queen))  return Queen;
+            if(attackers & b->getPieces(a, King))   return King;
+            return NullPT;
+        }
+
+        template<Alliance A>
+        bool see_(Board* const board, Move move, int thresh) {
+
+            constexpr Alliance us = A, them = ~A;
+
+            int32_t score = getValue(board, move) - thresh;
+
+            if(score < 0) return false;
+
+            score -= see_values[
+                move.isPromotion()? 
+                move.promotionPiece(): 
+                board->getPiece(move.origin())
+            ];
+
+            if(score >= 0) return true;
+
+            const uint32_t sq = move.destination();
+
+            uint64_t occupied = 
+                board->getAllPieces() ^ 
+                SquareToBitBoard[move.origin()] ^ 
+                SquareToBitBoard[move.destination()];
+
+            if(move.moveType() == EnPassant)
+                occupied ^= SquareToBitBoard[board->getEpSquare()];
+
+            const uint64_t queens  = board->getPieces<us, Queen>() | 
+                                     board->getPieces<them, Queen>();
+            const uint64_t bishops = board->getPieces<us, Bishop>() | 
+                                     board->getPieces<them, Bishop>() | queens;
+            const uint64_t rooks   = board->getPieces<us, Rook>() | 
+                                     board->getPieces<them, Rook>() | queens;
+
+            uint64_t attackers = attacksOn(board, occupied, sq);
+
+            Alliance a = them;
+
+            for(;;)
+            {
+                uint64_t attackers_ = attackers & board->getPieces(a);
+                if(attackers_ == 0)
+                    break;
+
+                PieceType pt = getNextVictim(board, a, attackers_);
+
+                occupied ^= SquareToBitBoard[bitScanFwd(attackers_ & board->getPieces(a, pt))];
+
+                if(pt == Pawn || pt == Bishop || pt == Queen)
+                    attackers |= attackBoard<Bishop>(occupied, sq) & bishops;
+
+                if(pt == Rook || pt == Queen)
+                    attackers |= attackBoard<Rook>(occupied, sq) & rooks;
+
+                attackers &= occupied;
+
+                score = -score - 1 - see_values[pt];
+
+                a = ~a;
+
+                if(score >= 0)
+                {
+                    if(pt == King && (attackers & board->getPieces(a)))
+                        a = ~a;
+                    break;
+                }
+            }
+
+            // Won't reach here.
+            return a != us;
+        }
+
+        bool see(Board* const board, Move move, int thresh)
+        {
+            return board->currentPlayer() == White ?
+                    see_<White>(board, move, thresh) :
+                    see_<Black>(board, move, thresh) ;
+        }
     } // namespace (anon)
 
     namespace MoveFactory {
@@ -691,7 +796,6 @@ namespace Homura {
         void control::addKiller(int depth, Move m) {
             if(killers[depth][0] == m)
                 return;
-            // ~40 elo
             killers[depth][1] = killers[depth][0];
             killers[depth][0] = m;
         }
@@ -724,7 +828,7 @@ namespace Homura {
         template<Alliance A>
         void control::updateHistory(int origin, int dest, int depth) {
             history[A][origin][dest] += depth*depth;   
-            if (history[A][origin][dest] >= INT32_MAX - 3)
+            if (history[A][origin][dest] >= INT32_MAX - 39)
                 ageHistory();
         }
 
@@ -732,9 +836,19 @@ namespace Homura {
         template void control::updateHistory<Black>(int, int, int);
 
         template<Alliance A>
+        void control::decayHistory(int origin, int dest, int depth) {
+            history[A][origin][dest] -= depth*depth;
+            if (history[A][origin][dest] <= -INT32_MAX + 39)
+                ageHistory();
+        }
+
+        template void control::decayHistory<White>(int, int, int);
+        template void control::decayHistory<Black>(int, int, int);
+
+        template<Alliance A>
         void control::raiseHistory(int origin, int dest, int depth) {
             history[A][origin][dest] += depth;   
-            if (history[A][origin][dest] >= INT32_MAX - 3)
+            if (history[A][origin][dest] >= INT32_MAX - 39)
                 ageHistory();
         }
 
@@ -811,6 +925,18 @@ namespace Homura {
                     break;
                 }
             }
+
+            inline void _sort_moves(Move* l, Move* r, int64_t* p)
+            {
+                for (Move *i = l; i <= r; ++i, ++p) {
+                    const Move t = *i;
+                    const int64_t s = *p;
+                    Move *j = i;
+                    int64_t * pp = p;
+                    while (--j >= l && s > *--pp) { j[1] = *j; pp[1] = *pp; } 
+                    j[1] = t; pp[1] = s; 
+                }                
+            }
         }
 
         /**
@@ -823,6 +949,43 @@ namespace Homura {
          */
         template<>
         MoveList<ROLL>::MoveList(Board* const b, control* const q, const int d) {
+            // idx = -1;
+
+            // // Generate attacks.
+            // size = generateMoves<Aggressive>(b, m);
+            // int i = 0;
+            // for(; i < size; ++i) {            
+            //     if(m[i] == q->pvMove) {
+            //         p[i] = INT64_MAX;
+            //         continue;
+            //     }
+            //     p[i] = ((see(b, m[i], 0))? INT32_MAX: -INT64_MAX) + val
+            //         [(uint32_t) b->getPiece(m[i].destination())]
+            //         [(uint32_t) b->getPiece(m[i].origin())     ];
+            // }
+
+            // qIdx = 0;
+            // mid = m + size;
+            // size += generateMoves<Passive>(b, mid); 
+            // for(; i < size; ++i) {
+            //     if(m[i] == q->pvMove)
+            //         p[i] = INT64_MAX;
+            //     else if(m[i] == q->killers[d][0])
+            //         p[i] = INT32_MAX-1;
+            //     else if(m[i] == q->killers[d][1])
+            //         p[i] = INT32_MAX-2;
+            //     else
+            //         p[i] =
+            //             q->history
+            //             [b->currentPlayer()]
+            //             [m[i].origin()     ]
+            //             [m[i].destination()];
+            // }
+
+            // _sort_moves(m, m + (size - 1), p);
+
+            // // ...
+
             idx = -1;
             // Generate attacks.
             size = generateMoves<Aggressive>(b, m);
@@ -864,33 +1027,31 @@ namespace Homura {
             int i = 0;
             for(; i < size; ++i) {            
                 if(m[i] == q->pvMove)
-                {
+                    p[i] = INT64_MAX;
+                else if(m[i].isPromotion())
                     p[i] = INT32_MAX;
-                    continue;
-                }
-                p[i] = (int32_t) val
+                else p[i] = ((see(b, m[i], 0))? INT32_MAX: INT32_MAX - 39) + val
                     [(uint32_t) b->getPiece(m[i].destination())]
                     [(uint32_t) b->getPiece(m[i].origin())     ];
             }
 
-            if constexpr (ST == Q) {
+            if constexpr (ST == Q)
                 return;
-            }
 
+            qIdx = 0;
             mid = m + size;
             size += generateMoves<Passive>(b, mid); 
             for(; i < size; ++i) {
                 if(m[i] == q->pvMove)
-                {
+                    p[i] = INT64_MAX;
+                else if(m[i].isPromotion())
                     p[i] = INT32_MAX;
-                    continue;
-                }
-                if(m[i] == q->killers[d][0])
-                    p[i] = -1;
-                if(m[i] == q->killers[d][1])
-                    p[i] = -2;
+                else if(m[i] == q->killers[d][0])
+                    p[i] = INT32_MAX-1;
+                else if(m[i] == q->killers[d][1])
+                    p[i] = INT32_MAX-2;
                 else
-                    p[i] = (-INT32_MAX) +
+                    p[i] =
                         q->history
                         [b->currentPlayer()]
                         [m[i].origin()     ]

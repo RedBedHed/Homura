@@ -283,6 +283,10 @@ namespace Homura {
                 );
             }
 
+            const bool isAttack = b->hasAttack();
+
+            if(!isAttack) k->setMalus();
+
             /**
              * undo the move.
              */
@@ -303,6 +307,16 @@ namespace Homura {
 
                 Move pvMove = n->getPVMove();
                 int32_t highScore = n->getScore();
+
+                /**
+                 * Update the history if quiet 
+                 * beta cutoff. 
+                 */
+                if(highScore >= beta && !isAttack) 
+                {
+                    n->updateHistory<A>(c, r, move);
+                    c->addKiller(d, move);
+                }
 
                 /**
                  * Store the node.
@@ -364,15 +378,6 @@ namespace Homura {
              */
             Board b = Board::Builder
             <Default>(*_b).build();
-
-            // char info[500];
-            // search(
-            //     &b,
-            //     info,
-            //     c,
-            //     time
-            //     );
-            // return;
 
             /**
              * Reset the search 
@@ -988,6 +993,55 @@ namespace Homura {
          * Return the greedy choice.
          */
         return choice;
+    }
+
+     ///////////////////////////////////////////////////////////
+    /** 
+    *** NODE - UPDATE HISTORY           
+    ***
+    *** <summary>
+    *** <p>
+    *** In the event of a beta cutoff, we should update the
+    *** history.
+    *** </p>
+    *** </summary>
+    ***
+    *** @author Ellie Moore
+    *** @version 05.11.2023
+     *//////////////////////////////////////////////////////////
+
+    template<Alliance A>
+    inline void Node::updateHistory
+        (
+        control* c, 
+        int r,
+        Move m
+        )
+    {
+        /**
+         * Loop through the children
+         * of this node.
+         */
+        foreach_node(x, children) {
+
+            /**
+             * Malus!
+             */
+            if(x->malus() && x->move != m)
+            {
+                c->decayHistory<A>
+                (
+                    x->move.origin(), 
+                    x->move.destination(), 
+                    r
+                );
+            }
+        }
+
+        /**
+         * Update the history normally.
+         */
+        c->updateHistory<A>(m.origin(), m.destination(), r);
     }
 
      ///////////////////////////////////////////////////////////

@@ -20,6 +20,8 @@ namespace Homura {
     { NOT = 0x00U,  DRAW = 0x02U,  WIN = 0x04U };
 
     constexpr uint8_t LoudMask  =    0x08U;
+    constexpr uint8_t MalusMask =    0x10U;
+
     /**
      * The terminal mask to extract a TermType
      * from flag bits.
@@ -377,7 +379,14 @@ namespace Homura {
         [[nodiscard]]
         constexpr bool reSearch() 
         { return flags & ReMask; }
-        
+
+        [[nodiscard]]
+        constexpr bool malus()
+        { return flags & MalusMask; }
+
+        constexpr void setMalus()
+        { flags |= MalusMask; }
+
         /**
          * A method to indicate whether the V-
          * and V+ bounds have met at this node
@@ -514,6 +523,9 @@ namespace Homura {
         template<Alliance A>
         Node* select(Board* b, int&, uint32_t, uint32_t, control*);
 
+        template<Alliance A>
+        void updateHistory(control*, int, Move);
+
         /**
          * A method to backpropagate bounds +
          * score from the children into this 
@@ -522,7 +534,7 @@ namespace Homura {
         void backprop();
     };
 
-    class node_pool final {
+    class NodePool final {
     private:
 
         Node ** const n, 
@@ -530,7 +542,7 @@ namespace Homura {
     public:
 
         explicit constexpr
-        node_pool(int size) :
+        NodePool(int size) :
         n(new Node*[size]), 
         p(n), e(n + size)
         {
@@ -566,7 +578,7 @@ namespace Homura {
             while(p < e) delete *p++;
         }
 
-        inline ~node_pool() 
+        inline ~NodePool() 
         { delete[] n; }
     };
 
@@ -630,7 +642,7 @@ namespace Homura {
          */
         void purgeCollection();
 
-        node_pool pool{10000};
+        NodePool pool{10000};
     public:
 
         /**

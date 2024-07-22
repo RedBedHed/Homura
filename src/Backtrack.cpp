@@ -481,6 +481,9 @@ namespace Homura {
                 k.isPromotion() ||
                 giveCheck;
 
+            if(!isAttack)
+                ml.setMalus(k);
+
             /*
              * PV Search
              */
@@ -531,7 +534,12 @@ namespace Homura {
             //     [r][idx] <= 6 && 
             //     !concern &&
             //     hlfutile) {
-            //     int64_t h = c->getHistory<A>(k.origin(), k.destination()) - (1 << 24);
+            //     int64_t h = 
+            //         c->getHistory<A>
+            //         (
+            //         k.origin(), 
+            //         k.destination()
+            //         ) - (1 << 23);
             //     if(h < 5997)
             //     {
             //         b->retractMove(k);
@@ -681,12 +689,7 @@ namespace Homura {
                  * Update the 
                  * killers.
                  */
-                c->updateHistory<A>
-                (
-                    k.origin(),
-                    k.destination(), 
-                    r
-                );
+                ml.updateHistory<A>(c, r);
                 c->addKiller(d, k);
                 break;
             }
@@ -941,7 +944,6 @@ namespace Homura {
              * so that it is immediately
              * replaced.
              */
-            int32_t highScore = a;
             Move hm = NullMove;
             int32_t oa = a;
 
@@ -1031,7 +1033,6 @@ namespace Homura {
          * so that it is immediately
          * replaced.
          */
-        int32_t highScore = a;
         Move hm = NullMove;
         int32_t oa = a;
 
@@ -1121,64 +1122,64 @@ namespace Homura {
      // ITERATIVE DEEPENING - FOR SCIENCE
     ////////////////////////////////////////////////////////////
 
-    Move search
-        (
-        Board *const b,
-        char* info,
-        control& q,
-        int time
-        )
-    {
-        q.epoch = system_clock::now();
-        q.time = time;
-        int depth = 1;
-        Move bestYet = NullMove;
-        int64_t beta = INT64_MAX, alpha = -INT64_MAX;
-        int nodes = 0;
-        do {
-            q.MAX_DEPTH = depth;
-            q.NULL_PLY = depth / 4;
-            q.Q_PLY    = 65;
-            q.NODES    = 0;
-            int64_t score = INT32_MIN;
-            Alliance a = b->currentPlayer();
-            if(a == White)
-                score = -alphaBeta
-                <White, ROOT>
-                (
-                    b, 0, depth,
-                    alpha, beta, &q
-                );
-            else 
-                score = -alphaBeta
-                <Black, ROOT>
-                (
-                    b, 0, depth,
-                    alpha, beta, &q
-                );
-            int64_t ms = elapsed(q.epoch);
-            if(ms >= time) break;
-            bestYet = q.bestMove;
-            nodes += q.NODES;
-            // if(score <= alpha || score >= beta) {
-            //     alpha = -INT32_MAX;
-            //     beta = INT32_MAX;
-            //     continue;
-            // }
-            std::cout << "info depth " 
-                      << depth
-                      << " score cp " 
-                      << -score
-                      << " nodes "
-                      << q.NODES
-                      <<  " nps " 
-                      << (ms >= 1000? nodes / (ms / 1000): nodes)
-                      << " time "
-                      << ms << '\n';
-            // alpha = score - 35;
-            // beta = score + 35;
-            ++depth;
-        } while(depth < MaxDepth);
-        return bestYet;
-    }
+    // Move search
+    //     (
+    //     Board *const b,
+    //     char* info,
+    //     control& q,
+    //     int time
+    //     )
+    // {
+    //     q.epoch = system_clock::now();
+    //     q.time = time;
+    //     int depth = 1;
+    //     Move bestYet = NullMove;
+    //     int64_t beta = INT64_MAX, alpha = -INT64_MAX;
+    //     int nodes = 0;
+    //     do {
+    //         q.MAX_DEPTH = depth;
+    //         q.NULL_PLY = depth / 4;
+    //         q.Q_PLY    = 65;
+    //         q.NODES    = 0;
+    //         int64_t score = INT32_MIN;
+    //         Alliance a = b->currentPlayer();
+    //         if(a == White)
+    //             score = -alphaBeta
+    //             <White, ROOT>
+    //             (
+    //                 b, 0, depth,
+    //                 alpha, beta, &q
+    //             );
+    //         else 
+    //             score = -alphaBeta
+    //             <Black, ROOT>
+    //             (
+    //                 b, 0, depth,
+    //                 alpha, beta, &q
+    //             );
+    //         int64_t ms = elapsed(q.epoch);
+    //         if(ms >= time) break;
+    //         bestYet = q.bestMove;
+    //         nodes += q.NODES;
+    //         // if(score <= alpha || score >= beta) {
+    //         //     alpha = -INT32_MAX;
+    //         //     beta = INT32_MAX;
+    //         //     continue;
+    //         // }
+    //         std::cout << "info depth " 
+    //                   << depth
+    //                   << " score cp " 
+    //                   << -score
+    //                   << " nodes "
+    //                   << q.NODES
+    //                   <<  " nps " 
+    //                   << (ms >= 1000? nodes / (ms / 1000): nodes)
+    //                   << " time "
+    //                   << ms << '\n';
+    //         // alpha = score - 35;
+    //         // beta = score + 35;
+    //         ++depth;
+    //     } while(depth < MaxDepth);
+    //     return bestYet;
+    // }
 }

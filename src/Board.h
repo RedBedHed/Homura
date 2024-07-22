@@ -295,6 +295,16 @@ namespace Homura {
         constexpr uint64_t getPieces()
         { return pieces[A][PT]; }
 
+        template<Alliance A>
+        constexpr uint64_t getPieces(PieceType pt)
+        { return pieces[A][pt]; }
+
+        constexpr uint64_t getPieces(Alliance a, PieceType pt)
+        { return pieces[a][pt]; }
+
+        constexpr uint64_t getPieces(Alliance a)
+        { return pieces[a][NullPT]; }
+
         /**
          * A method to expose a half-sandwich bitboard
          * of all piece bitboards belonging to the given
