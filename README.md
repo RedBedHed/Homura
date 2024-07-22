@@ -2,7 +2,7 @@
 <p align="center">
   <image src="/Art/HomuraLogoV2.jpg" width="500" height="500" ></image>
 </p>
-<h4 align="center"><b><i>UCI-Subset Chess Engine and Undergraduate Project</i></b></h4>
+<h4 align="center"><b><i>UCI-Subset Chess Engine</i></b></h4>
 
 #
 
@@ -10,7 +10,7 @@
   <image src="/Art/Mitakihara_Distance.png" ></image>
 </p>
 
-<h6 align="center"><i>"I'll do it over. No matter how many times it takes. I'll re-live it over and over again. I will find the way out... The one path that will save you from a destiny of despair." - Akemi Homura</i></h6>
+<h6 align="center"><i>"I will save you. It's the one thing I wished for. It's how it all started. And now it's the only thing I have left to guide me" - Akemi Homura</i></h6>
 
 ## Index
 1. [Introduction](https://github.com/RedBedHed/Homura/tree/main#introduction)
