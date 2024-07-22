@@ -10,7 +10,7 @@
   <image src="/Art/Mitakihara_Snow.png" ></image>
 </p>
 
-<h6 align="center"><i>"I will save you. It's the one thing I wished for. It's how it all started. And now it's the only thing I have left to guide me" - Akemi Homura</i></h6>
+<h6 align="center"><i>"I will save you. It's the one thing I wished for. It's how it all started. And now it's the only thing I have left to guide me." - Akemi Homura</i></h6>
 
 ## Index
 1. [Introduction](https://github.com/RedBedHed/Homura/tree/main#introduction)
