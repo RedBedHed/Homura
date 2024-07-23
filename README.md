@@ -26,7 +26,7 @@
 
 ## Introduction
 
-Homura is a UCI Chess Engine that I maintain as a hobby. Homura originally started as an undergraduate honors thesis project. As a full-time student (16 credit hours a semester), I made progress whenever and wherever I could&mdash; in campus libraries, coffee shops, on the bus, in bed. I read many papers and found inspiration in many engines, including Stockfish, Leela, Drofa, Scorpio, Fruit, CPW-Engine, PeSTO, Blunder, Mantissa, Stormphrax, and Leorik. Homura derives from some of the ideas used in these engines&mdash; most notably PeSTO.
+Homura is a UCI Chess Engine that I maintain as a hobby. Homura started as an undergraduate honors thesis project for which I read many papers and found inspiration in many engines, including Stockfish, Leela, Drofa, Scorpio, Fruit, CPW-Engine, PeSTO, Blunder, Mantissa, Stormphrax, and Leorik. Homura derives from some of the ideas used in these engines&mdash; most notably PeSTO.
 
 ## Strength
 Homura is currently unrated.
