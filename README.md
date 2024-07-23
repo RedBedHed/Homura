@@ -225,4 +225,4 @@ Homura is open source with an MIT license. If for any reason you actually like t
 
 #
 
-<h6 align="center"><i>Disclaimer: I used DALL-E 2 to generate Homura's logo. The image beneath comes from the anime movie PMMM: Rebellion.</i></h6>
+<h6 align="center"><i>Disclaimer: I used DALL-E 3 to generate Homura's logo. The image beneath comes from the anime movie PMMM: Rebellion.</i></h6>
