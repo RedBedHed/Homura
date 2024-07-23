@@ -142,7 +142,7 @@ Moves are sorted incrementally in the following order:
 
 ## Move Generation
 
-Homura implements a strictly legal move generator with either PEXT or Fancy Magic for sliding attacks depending on the target CPU. It is heavily inspired by Stockfish, but differs in many ways. This move generator is very fast&mdash; a fact that I have been using as a bit of a crutch. Homura doesn't implement staged move generation, and I consider this to be a design flaw.
+Homura implements a strictly legal move generator with either PEXT or Fancy Magic for sliding attacks depending on the target CPU. It is heavily inspired by Stockfish, but differs in many ways. This move generator is very fast&mdash; a fact that I have been using as a bit of a crutch. Homura doesn't implement staged move generation.
 
 ```
 Startup  -  0.001 seconds
