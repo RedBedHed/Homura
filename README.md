@@ -10,7 +10,9 @@
   <image src="/Art/Mitakihara_Snow.png" ></image>
 </p>
 
-<h6 align="center"><i>"The truth is... I'm from the future. I've met you over and over and every time... and every time... I've had to watch you die. What do I have to do to save you? What do I have to do to change your fate? I kept doing this month over again searching for the answer. I will save you. It's the one thing I wished for. It's how it all started. And now... It's the only thing I have left to guide me." - Akemi Homura</i></h6>
+<h6 align="center"><i>"The truth is... I'm from the future. I've met you over and over and every time... and every time... I've had to watch you die. What do I have to do to save you? What do I have to do to change your fate? I kept doing this month over again searching for the answer."</i></h6>
+<h6 align="center"><i>I will save you. It's the one thing I wished for. It's how it all started. And now... It's the only thing I have left to guide me."</i></h6>
+<h6 align="center"><i> - Akemi Homura</i></h6>
 
 ## Index
 1. [Introduction](#introduction)
