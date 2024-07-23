@@ -10,7 +10,7 @@
   <image src="/Art/Mitakihara_Snow.png" ></image>
 </p>
 
-<h6 align="center"><i>"I will save you. It's the one thing I wished for. It's how it all started. And now it's the only thing I have left to guide me." - Akemi Homura</i></h6>
+<h6 align="center"><i>"I will save you. It's the one thing I wished for. It's how it all started. And now... It's the only thing I have left to guide me." - Akemi Homura</i></h6>
 
 ## Index
 1. [Introduction](#introduction)
@@ -101,7 +101,7 @@ Homura's search is nearly single-threaded, relying on only one extra thread for 
 
 ### // *Base Search* //
 - Iterative Deepening
-- Aspiration
+- Aspiration Windows
 - PVS with PV-nodes searched by [rollout](src/Rollout.cpp)
 - Non-PV-nodes searched with [backtracking](src/Backtrack.cpp)
 - Internal Iterative Deepening by backtracking
