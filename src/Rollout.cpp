@@ -312,8 +312,7 @@ namespace Homura {
                  * Update the history if quiet 
                  * beta cutoff. 
                  */
-                if(highScore >= beta && !isAttack) 
-                {
+                if(highScore >= beta && !isAttack) {
                     n->updateHistory<A>(c, r, move);
                     c->addKiller(d, move);
                 }
@@ -362,7 +361,7 @@ namespace Homura {
          *//////////////////////////////////////////////////////////
 
         template<Alliance A>
-        void worker
+        void idLoop
             (
             Board *const _b,        /** Board             */
             Node* n,                /** Current Node      */
@@ -959,12 +958,15 @@ namespace Homura {
 
             /**
              * Use Leftmost Policy in
-             * two cases:
+             * three cases:
              * 
-             * 1) If this node is the
+             * 1) If this child is an
+             * attack.
+             * 
+             * 2) If this node is the
              * root node.
              * 
-             * 2) If the index of this
+             * 3) If the index of this
              * child in the child list
              * is less than the
              * remaining depth * 2
@@ -1280,14 +1282,14 @@ namespace Homura {
         // return search(b, info, q, time);
         
         /**
-         * Call the worker routine
+         * Call the idLoop routine
          * with the correct alliance.
          */
         Move best;
         if(b->currentPlayer() == White) 
-            worker<White>(b, root, gc, time, soft, best, c);
+            idLoop<White>(b, root, gc, time, soft, best, c);
         else 
-            worker<Black>(b, root, gc, time, soft, best, c);
+            idLoop<Black>(b, root, gc, time, soft, best, c);
 
         /**
          * Fill the "info."
