@@ -13,23 +13,23 @@
 <h6 align="center"><i>"I will save you. It's the one thing I wished for. It's how it all started. And now it's the only thing I have left to guide me." - Akemi Homura</i></h6>
 
 ## Index
-1. [Introduction](https://github.com/RedBedHed/Homura/tree/main#introduction)
-2. [Strength](https://github.com/RedBedHed/Homura/tree/main#strength)
-3. [Search](https://github.com/RedBedHed/Homura/tree/main#search)
-4. [Experimentation](https://github.com/RedBedHed/Homura/tree/main#experimentation-with-classical-mcts)
-5. [Rollout Alpha-Beta](https://github.com/RedBedHed/Homura/tree/main#algorithm-4-by-dr-huang)
-6. [Search Techniques](https://github.com/RedBedHed/Homura/tree/main#search-techniques)
-7. [Move Generation](https://github.com/RedBedHed/Homura/tree/main#move-generation)
-8. [UCI](https://github.com/RedBedHed/Homura/tree/main#uci)
-9. [Build Homura](https://github.com/RedBedHed/Homura/tree/main#build-homura)
-10. [Play Homura](https://github.com/RedBedHed/Homura/tree/main#play-homura)
+1. [Introduction](#introduction)
+2. [Strength](#strength)
+3. [Search](#search)
+4. [Experimentation](#experimentation-with-classical-mcts)
+5. [Rollout Alpha-Beta](#algorithm-4-by-dr-huang)
+6. [Search Techniques](#search-techniques)
+7. [Move Generation](#move-generation)
+8. [UCI](#uci)
+9. [Build Homura](#build-homura)
+10. [Play Homura](#play-homura)
 
 ## Introduction
 
-Homura is a Chess Engine that I wrote from 2022-2023 as a branch of my move generator, Charon. As a full-time student (16 credit hours a semester), I made progress whenever and wherever I could&mdash; in campus libraries, coffee shops, on the bus, in bed. I read many papers and found inspiration in many engines, including Stockfish, Leela, Drofa, Scorpio, Fruit, CPW-Engine, PeSTO, Blunder, and Leorik. Homura derives from some of the ideas used in these engines&mdash; most notably PeSTO, Blunder, and Leorik.
+Homura is a UCI Chess Engine that I maintain as a hobby. Homura originally started as an undergraduate honors thesis project. As a full-time student (16 credit hours a semester), I made progress whenever and wherever I could&mdash; in campus libraries, coffee shops, on the bus, in bed. I read many papers and found inspiration in many engines, including Stockfish, Leela, Drofa, Scorpio, Fruit, CPW-Engine, PeSTO, Blunder, Mantissa, Stormphrax, and Leorik. Homura derives from some of the ideas used in these engines&mdash; most notably PeSTO.
 
 ## Strength
-It is hard to say exactly how strong Homura is, as I ran out of time to implement the full UCI interface, and Homura only recognizes "movetime" or "infinite" time controls. After playing many games with Leorik-1.0 and Leorik-2.0, I believe that the elo might be somewhere between 2300 and 2550 at blitz chess. I also had the great privilege to intermediate a game between Homura and one of the top human players at my university. I am thrilled to be able to say that we won that game.
+Homura is currently unrated.
 
 ## Search
 Homura uses a hybrid search algorithm that combines Dr. Bojun Huang's [Alpha-Beta rollout](https://www.microsoft.com/en-us/research/wp-content/uploads/2014/11/huang_rollout.pdf) algorithm with the traditional backtracking Alpha-Beta. All PV nodes are searched via rollout, while the remaining nodes are searched with backtracking and a null window. The rollout portion of the algorithm probes the transposition table each time that it enters a node, and its tree policy is a combination of leftmost and greedy selection.
@@ -101,14 +101,17 @@ Homura's search is nearly single-threaded, relying on only one extra thread for 
 
 ### // *Base Search* //
 - Iterative Deepening
-- PVS with PV-nodes searched by [rollout](https://github.com/RedBedHed/Homura/blob/main/src/Rollout.cpp)
-- Non-PV-nodes searched with [backtracking](https://github.com/RedBedHed/Homura/blob/main/src/Backtrack.cpp)
+- Aspiration
+- PVS with PV-nodes searched by [rollout](src/Rollout.cpp)
+- Non-PV-nodes searched with [backtracking](src/Backtrack.cpp)
 - Internal Iterative Deepening by backtracking
 - Quiescence Search
 - Transposition table with two buckets and clock-based aging
+- Static Exchange Evaluation
+- History (with Malus)
 
 ### // *Selectivity* //
-- Static Null Move Pruning
+- Reverse Futility Pruning
 - Null Move Pruning
 - Razoring
 - Futility Pruning
@@ -116,9 +119,12 @@ Homura's search is nearly single-threaded, relying on only one extra thread for 
 - Late Move Reductions
 
 ### // *Move Ordering* //
+Moves are sorted incrementally in the following order:
 - PV Move (Hash Move)
-- MVV-LVA Attacks
+- Good Attacks (SEE, MVV-LVA)
+- Promotion moves
 - Killer Quiets
+- Bad Attacks (SEE, MVV-LVA)
 - History Quiets
 
 ### // *Evaluation* //
