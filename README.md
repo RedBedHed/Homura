@@ -137,7 +137,7 @@ Moves are sorted incrementally in the following order:
  
 ## Strength
 | Version | Strength | RFP | NMP | R   | FP  | LMP | LMR
----------------------------------------------------------
+|---------|----------|-----|-----|-----|-----|-----|-----
 | 1.0     | unrated  | Yes | Yes | Yes | Yes | Yes | Yes
 
 ## Move Generation
