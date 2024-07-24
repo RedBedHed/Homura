@@ -17,6 +17,7 @@
 #include <queue>
 #include <fstream>
 #include <iomanip>
+#include <sstream>
 
 using
 std::stringstream,
