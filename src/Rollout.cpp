@@ -761,20 +761,23 @@ namespace Homura {
          * History for a 
          * significant speedup.
          */
-        MoveList<ROLL> ml(b, c, d);
-        Move *k = ml.begin(),
-             *e = ml.end();
+        MoveList<AB> ml(b, c, d);
+
+        /**
+         * Get the first move. 
+         */
+        Move k = ml.nextMove();
 
         /**
          * Iterate through the moves.
          * Expand.
          */
-        for(State s; k < e; ++k) {
+        for(State s;;) {
 
             /**
              * do the move.
              */
-            b->applyMove(*k, s);
+            b->applyMove(k, s);
 
             /**
              * Are we in check?
@@ -810,14 +813,14 @@ namespace Homura {
              */
             children
                 .push_back(gc.alloc(
-                    this, *k, 
+                    this, k, 
                     TermType(
                     (reply.length() <= 0?
                         (inCheck? WIN: DRAW):
                         (!isMatePossible(b) 
                         || repeating(b, d)? 
                         DRAW: NOT)) | 
-                    (ml.loud(k) << 3U)
+                    (b->hasAttack() << 3U)
                     ), 
                     INT32_MIN
                 ));
@@ -825,7 +828,13 @@ namespace Homura {
             /**
              * undo the move
              */
-            b->retractMove(*k);
+            b->retractMove(k);
+
+            /**
+             * Pop the next move. 
+             */
+            if((k = ml.nextMove()) == NullMove)
+                break;
         }
         return true;
     }
