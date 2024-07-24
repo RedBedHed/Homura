@@ -15,11 +15,11 @@
 
 ## Index
 1. [Introduction](#introduction)
-2. [Strength](#strength)
-3. [Search](#search)
-4. [Experimentation](#experimentation-with-classical-mcts)
-5. [Rollout Alpha-Beta](#algorithm-4-by-dr-huang)
-6. [Search Techniques](#search-techniques)
+2. [Search](#search)
+3. [Experimentation](#experimentation-with-classical-mcts)
+4. [Rollout Alpha-Beta](#algorithm-4-by-dr-huang)
+5. [Search Techniques](#search-techniques)
+6. [Strength](#strength)
 7. [Move Generation](#move-generation)
 8. [UCI](#uci)
 9. [Build Homura](#build-homura)
