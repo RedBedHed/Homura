@@ -10,8 +10,7 @@
   <image src="/Art/Mitakihara_Snow.png" ></image>
 </p>
 
-<h6 align="center"><i>"I will save you.</i></h6>
-<h6 align="center"><i>That's the feeling I started all of this with. And now... It's the only thing I have left to guide me."</i></h6>
+<h6 align="center"><i>"I <b>will</b> save you. That's the feeling I started all of this with. And now... It's the only thing I have left to guide me."</i></h6>
 <h6 align="center"><i> - Akemi Homura</i></h6>
 
 ## Index
