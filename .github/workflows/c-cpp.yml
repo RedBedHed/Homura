@@ -13,8 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: cd src && make
-      run: make src
+    - name: make
+      run: cd src && make
 
   build-win:
 
@@ -22,5 +22,5 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: cd src && make
-      run: make src
+    - name: make
+      run: cd src && make
