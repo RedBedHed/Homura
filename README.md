@@ -202,6 +202,15 @@ milliseconds. After searching, it responds with:
     </blockquote>
   </li>
   <li>
+    <h3><i>go wtime &lt;milliseconds&gt; btime &lt;milliseconds&gt; winc &lt;milliseconds&gt; binc &lt;milliseconds&gt;</i></h3>
+This command tells Homura to search from the current position for the remaining time in
+milliseconds, with optional increment. After searching, it responds with:
+    <br/><br/>
+    <blockquote>
+      <i>bestmove &lt;move in algebraic notation&gt;</i>
+    </blockquote>
+  </li>
+  <li>
     <h3><i>position startpos &lt;list of algebraic moves&gt;</i></h3>
 This command tells Homura to update the state of the board, playing the move at the
 end of the list of given moves. (This seemed to be the easiest implementation)
