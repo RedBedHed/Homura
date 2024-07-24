@@ -1008,12 +1008,6 @@ namespace Homura {
 
     public:
 
-        // explicit constexpr Board(State& s) :
-        // currentPlayerAlliance(White),
-        // currentState(s) {
-            
-        // }
-
         [[nodiscard]]
         constexpr uint64_t getAllPieces() const
         { return allPieces; }

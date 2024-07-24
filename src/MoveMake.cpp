@@ -777,19 +777,17 @@ namespace Homura {
                     killers[i][j] = NullMove;
             for(int i = 0; i < MaxDepth; ++i)
                 iidMoves[i] = NullMove;
-            constexpr double m1 = 1.001204250630;
-            constexpr double m2 = 1.502405984023;
             for(int i = 0; i < MaxDepth; ++i)
                 for(int j = 0; j < 256; ++j)
                     reductions[i][j] = 
                         int32_t(
-                            m1 * (double(i) /  4.0) + 
-                            m2 * (double(j) / 12.0)
+                            CRemaining * (double(i) /  4.0) + 
+                            CIndex     * (double(j) / 12.0)
                         );
             for(int j = 0; j < 256; ++j)
                 pv_reductions[j] = 
                     int32_t( 
-                        m2 * (double(j) / 12.0)
+                        CIndex * (double(j) / 12.0)
                     );
         }
 
@@ -828,7 +826,7 @@ namespace Homura {
         template<Alliance A>
         void control::updateHistory(int origin, int dest, int depth) {
             history[A][origin][dest] += depth*depth;   
-            if (history[A][origin][dest] >= INT32_MAX - 39)
+            if (history[A][origin][dest] >= INT32_MAX - HistoryOffset)
                 ageHistory();
         }
 
@@ -838,7 +836,7 @@ namespace Homura {
         template<Alliance A>
         void control::decayHistory(int origin, int dest, int depth) {
             history[A][origin][dest] -= depth*depth;
-            if (history[A][origin][dest] <= -INT32_MAX + 39)
+            if (history[A][origin][dest] <= -INT32_MAX + HistoryOffset)
                 ageHistory();
         }
 
@@ -848,7 +846,7 @@ namespace Homura {
         template<Alliance A>
         void control::raiseHistory(int origin, int dest, int depth) {
             history[A][origin][dest] += depth;   
-            if (history[A][origin][dest] >= INT32_MAX - 39)
+            if (history[A][origin][dest] >= INT32_MAX - HistoryOffset)
                 ageHistory();
         }
 

@@ -155,6 +155,14 @@ namespace Homura {
         using std::mutex;
 
         /**
+         * History scores are always less than 
+         * INT32_MAX - HistoryOffset
+         */
+        constexpr int64_t HistoryOffset = 39;
+        constexpr double  CRemaining    = 1.001204250630;
+        constexpr double  CIndex        = 1.502405984023;
+
+        /**
          * A struct containing the search
          * controls and relevant tables.
          */

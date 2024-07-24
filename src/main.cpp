@@ -18,8 +18,6 @@ using std::cout;
  * poor. I need to just re-write this file completely.
  * However, I don't have the time to do that for this
  * "release."
- * 
- * I will definitely do so in my next engine.
  */
 
 enum Tokens : uint32_t 

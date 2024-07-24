@@ -25,52 +25,55 @@ namespace Homura {
     constexpr uint8_t lmpMargins[] = 
     { 0, 10, 15, 20, 25, 30 };
 
-    /**
-     * The R value for null-move searches.
-     */
-    constexpr int32_t NULL_R = 2;
+    enum : uint32_t {
+        /**
+         * The R value for null-move searches.
+         */
+        NULL_R = 2,
 
-    /**
-     * Reverse Futility (Static Null Move Pruning)
-     * maximum remaining depth.
-     */
-    constexpr int32_t RFP_RD = 5;
+        /**
+         * Reverse Futility (Static Null Move Pruning)
+         * maximum remaining depth.
+         */
+        RFP_RD = 5,
 
-    /**
-     * Null Move Pruning minimum remaining depth.
-     */
-    constexpr int32_t NMP_RD = 2;
+        /**
+         * Null Move Pruning minimum remaining depth.
+         */
+        NMP_RD = 2,
 
-    /**
-     * Razoring maximum remaining depth.
-     */
-    constexpr int32_t RAZ_RD = 2;
+        /**
+         * Razoring maximum remaining depth.
+         */
+        RAZ_RD = 2,
 
-    /**
-     * Internal Iterative Deepening minimum remaining
-     * depth.
-     */
-    constexpr int32_t IID_RD = 4;
+        /**
+         * Internal Iterative Deepening minimum remaining
+         * depth.
+         */
+        IID_RD = 4,
 
-    /**
-     * Internal Iterative Deepening R value.
-     */
-    constexpr int32_t IID_R  = 3; 
+        /**
+         * Internal Iterative Deepening R value.
+         */
+        IID_R  = 3, 
 
-    /**
-     * Late Move Pruning maximum remaining depth.
-     */
-    constexpr int32_t LMP_RD = 5;
+        /**
+         * Late Move Pruning maximum remaining depth.
+         */
+        LMP_RD = 5,
 
-    /**
-     * Futility Pruning maximum remaining depth.
-     */
-    constexpr int32_t FUT_RD = 8;
+        /**
+         * Futility Pruning maximum remaining depth.
+         */
+        FUT_RD = 8,
 
-    /**
-     * Late Move Reductions minimum remaining depth.
-     */
-    constexpr int32_t LMR_RD = 2;
+        /**
+         * Late Move Reductions minimum remaining depth.
+         */
+        LMR_RD = 2
+    };
+
 
     /**
      * Basic node types enumerated.
