@@ -8,6 +8,7 @@
 
 #include "Backtrack.h"
 #include <queue>
+#include <thread>
 #include <cstring>
 
 namespace Homura {
