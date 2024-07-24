@@ -29,9 +29,6 @@
 
 Homura is a UCI Chess Engine that I maintain as a hobby. Homura started as an undergraduate honors thesis project for which I read many papers and found inspiration in many engines, including Stockfish, Leela, Drofa, Scorpio, Fruit, CPW-Engine, PeSTO, Blunder, Mantissa, Stormphrax, and Leorik. Homura derives from some of the ideas used in these engines&mdash; most notably PeSTO.
 
-## Strength
-Homura is currently unrated.
-
 ## Search
 Homura uses a hybrid search algorithm that combines Dr. Bojun Huang's [Alpha-Beta rollout](https://www.microsoft.com/en-us/research/wp-content/uploads/2014/11/huang_rollout.pdf) algorithm with the traditional backtracking Alpha-Beta. All PV nodes are searched via rollout, while the remaining nodes are searched with backtracking and a null window. The rollout portion of the algorithm probes the transposition table each time that it enters a node, and its tree policy is a combination of leftmost and greedy selection.
 
@@ -137,6 +134,11 @@ Moves are sorted incrementally in the following order:
 - Greedy Selection (classical MCTS)
     - Used exclusively in rollout search, near the leaves, if re-searches occur late in the list.
     - Picks the child with the highest negamax value so far.
+ 
+## Strength
+| Version | Strength | RFP | NMP | R   | FP  | LMP | LMR
+---------------------------------------------------------
+| 1.0     | unrated  | Yes | Yes | Yes | Yes | Yes | Yes
 
 ## Move Generation
 
