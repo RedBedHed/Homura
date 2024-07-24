@@ -10,7 +10,7 @@
   <image src="/Art/Mitakihara_Snow.png" ></image>
 </p>
 
-<h6 align="center"><i>"I <b>will</b> save you. That's the feeling I started all of this with. And now... It's the only thing I have left to guide me."</i></h6>
+<h6 align="center"><i>"I'll do it over. No matter how many times it takes. I'll re-live it over and over again. I will find the way out... The one path that will save you from a destiny of despair."</i></h6>
 <h6 align="center"><i> - Akemi Homura</i></h6>
 
 ## Index
