@@ -11,7 +11,7 @@ endif
 O = main.o analyzer.o ChaosMagic.o MoveMake.o Zobrist.o Backtrack.o Rollout.o
 
 cc0: $(O)
-	$(CC) $(CFLAGS) -lpthread -o $@ $(O)
+	$(CC) $(CFLAGS) -o $@ $(O)
 
 main.o: main.cpp Rollout.h Fen.h analyzer.h
 	$(CC) $(CFLAGS) -c main.cpp
