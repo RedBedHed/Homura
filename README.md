@@ -103,7 +103,7 @@ Homura's search is nearly single-threaded, relying on only one extra thread for 
 - PVS with PV-nodes searched by [rollout](src/Rollout.cpp)
 - Non-PV-nodes searched with [backtracking](src/Backtrack.cpp)
 - Node Pooling
-- Internal Iterative Deepening by backtracking
+- Internal Iterative Deepening
 - Quiescence Search
 - Transposition table with two buckets and clock-based aging
 - Static Exchange Evaluation
