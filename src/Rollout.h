@@ -7,7 +7,6 @@
 #define HOMURA_ROLLOUT_H
 
 #include "Backtrack.h"
-#include <thread>
 #include <queue>
 #include <cstring>
 
