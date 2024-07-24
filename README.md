@@ -2,7 +2,7 @@
 <p align="center">
   <image src="/Art/HomuraLogoV2.jpg" width="400" ></image>
 </p>
-<h4 align="center"><b><i>UCI-Subset Chess Engine</i></b></h4>
+<h4 align="center"><b><i>UCI Hybrid Chess Engine</i></b></h4>
 
 #
 
