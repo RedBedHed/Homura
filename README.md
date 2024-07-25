@@ -219,8 +219,6 @@ end of the list of given moves. (This seemed to be the easiest implementation)
 
 ## Build Homura
 
-I developed Homura with a "Windows Subsystem for Linux" Ubuntu distribution on a Windows 11 (Home) laptop. My processor is an 11th generation Intel processor with four physical cores. I have 16 GB of RAM. Although it may be possible to build and use Homura in other environments, I cannot guarantee that it will work correctly elsewhere.
-
 You may build the project by cloning the repository, opening a Bash shell in the project directory, navigating to the src directory, and typing “make.” These steps assume you already have the compilation tools “clang++” and “make” installed.
 
 To run the executable file, you must include the "ospec.txt" file in the executable file's directory. The "ospec.txt" file is needed for the lexical analyzer to correctly lex the supported UCI commands.
