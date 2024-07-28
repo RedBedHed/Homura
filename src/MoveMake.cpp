@@ -670,6 +670,14 @@ namespace Homura {
             return NullPT;
         }
 
+        /**
+         * Ported from Ethereal/Stormphrax.
+         *
+         * @tparam A     the alliance to consider
+         * @param board  the current game board
+         * @param move   the move to consider
+         * @param thresh threshold
+         */
         template<Alliance A>
         bool see_(Board* const board, Move move, int thresh) {
 
