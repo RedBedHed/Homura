@@ -1,4 +1,4 @@
-CC = clang++
+CC = g++
 STD = -std=c++2a
 CFLAGS = $(STD)
 
