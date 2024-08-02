@@ -23,5 +23,5 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: make
-    - shell: bash
+      shell: bash
       run: cd src && make
