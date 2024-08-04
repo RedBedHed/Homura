@@ -1,5 +1,5 @@
 CC = clang++
-STD = -std=c++23
+STD = -std=c++2a
 CFLAGS = $(STD)
 
 ifeq ($(debug), 1)
