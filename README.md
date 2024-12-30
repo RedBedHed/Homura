@@ -7,7 +7,7 @@
 #
 
 <p align="center">
-  <image src="/Art/Mitakihara_Snow.png" ></image>
+  <image src="/Art/Mitakihara_Distance.png" ></image>
 </p>
 
 <h6 align="center"><i>"I'll do it over. No matter how many times it takes. I'll re-live it over and over again. I will find the way out... The one path that will save you from a destiny of despair."</i></h6>
