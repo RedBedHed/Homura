@@ -104,7 +104,6 @@ Homura's search is nearly single-threaded, relying on only one extra thread for 
 - Non-PV-nodes searched with [backtracking](src/Backtrack.cpp)
 - Node Pooling
 - Internal Iterative Deepening
-- Quiescence Search
 - Transposition table with two buckets and clock-based aging
 - Static Exchange Evaluation
 - History (with Malus)
@@ -116,6 +115,7 @@ Homura's search is nearly single-threaded, relying on only one extra thread for 
 - Futility Pruning
 - Late Move Pruning
 - Late Move Reductions
+- Quiescence Search
 
 ### // *Move Ordering* //
 Moves are sorted incrementally in the following order:
