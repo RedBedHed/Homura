@@ -1,6 +1,6 @@
 <h1 align="center"><b>Homura (炎)</b></h1>
 <p align="center">
-  <image src="/Art/HomuraLogoV2.1.png" width="400" ></image>
+  <image src="/Art/HomuraLogoV2.2.png" width="400" ></image>
 </p>
 <h4 align="center"><b><i>UCI Hybrid Chess Engine</i></b></h4>
 
